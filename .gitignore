@@ -1,0 +1,57 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+# expo-env.d.ts is deliberately NOT ignored. Expo generates it, but it carries
+# the `expo/types` reference the whole project typechecks against — leave it out
+# of version control and a fresh clone fails `npm run type:check` until someone
+# runs `expo start`. Its own header says it should be committed.
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android
+
+# Env
+.env
+.env.*.local
+
+# IDE
+.idea/
+
+# Signing material
+key.jks
+*.keystore
