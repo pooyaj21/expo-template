@@ -18,6 +18,8 @@ export const AppConfig = {
   devUrl: process.env.EXPO_PUBLIC_API_DEV_URL || "",
   stageUrl: process.env.EXPO_PUBLIC_API_STAGE_URL || "",
   prodUrl: process.env.EXPO_PUBLIC_API_PROD_URL || "",
+  /** Empty disables Sentry init. Set `EXPO_PUBLIC_SENTRY_DSN` when ready. */
+  sentryDsn: process.env.EXPO_PUBLIC_SENTRY_DSN || "",
 
   // Per-project external URLs go here rather than at their call sites, so a
   // rebrand or locale change is one edit.

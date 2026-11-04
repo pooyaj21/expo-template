@@ -11,6 +11,7 @@ type SettingsRowProps = {
   value?: string;
   onPress?: () => void;
   end?: ReactNode;
+  testID?: string;
 };
 
 export const SettingsRow = ({
@@ -18,11 +19,13 @@ export const SettingsRow = ({
   value,
   onPress,
   end,
+  testID,
 }: SettingsRowProps) => {
   const { colors, isRtl } = useAppTheme();
 
   return (
     <AppPressable
+      testID={testID}
       onPress={onPress}
       style={[styles.row, { borderBottomColor: colors.divider }]}
     >

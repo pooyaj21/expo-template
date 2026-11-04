@@ -18,6 +18,7 @@ export type AppStringKey =
   | "shared_loading"
   | "home_title"
   | "home_subtitle"
+  | "home_example_cta"
   | "settings_title"
   | "settings_section_general"
   | "settings_row_language"
@@ -62,6 +63,10 @@ export const AppStrings: Record<AppStringKey, LocalizationItem> = {
   home_subtitle: {
     en: "Vertical Layered Feature Architecture, ready to build on.",
     ar: "بنية الميزات الطبقية العمودية، جاهزة للبناء عليها.",
+  },
+  home_example_cta: {
+    en: "Open the sample list (CRUD wired).",
+    ar: "افتح قائمة المثال (CRUD جاهز).",
   },
 
   settings_title: { en: "Settings", ar: "الإعدادات" },

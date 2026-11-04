@@ -1,0 +1,18 @@
+appId: com.pj21.apptemplate
+name: "Smoke: launch -> home -> example list -> back"
+tags:
+  - smoke
+---
+- runFlow: ../../subflows/freshLaunchToHome.yaml
+- tapOn:
+    id: "home-example-list"
+- extendedWaitUntil:
+    visible:
+      id: "example-list-screen"
+    timeout: 15000
+- tapOn:
+    id: "toolbar-back"
+- extendedWaitUntil:
+    visible:
+      id: "home-screen"
+    timeout: 10000

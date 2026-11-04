@@ -47,6 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-localization",
       "expo-secure-store",
       "expo-notifications",
+      "expo-screen-orientation",
       // Local plugin — see plugins/withAndroidSigning.js
       "./plugins/withAndroidSigning",
       [
@@ -57,6 +58,20 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           imageWidth: 160,
         },
       ],
+      // Only wire the Sentry Expo plugin when an upload token is present so a
+      // fresh clone prebuilds without a Sentry account.
+      ...(process.env.SENTRY_AUTH_TOKEN
+        ? ([
+            [
+              "@sentry/react-native/expo",
+              {
+                organization: process.env.SENTRY_ORG ?? "",
+                project: process.env.SENTRY_PROJECT ?? "",
+                authToken: process.env.SENTRY_AUTH_TOKEN,
+              },
+            ],
+          ] as [string, any][])
+        : []),
     ],
     experiments: {
       typedRoutes: true,

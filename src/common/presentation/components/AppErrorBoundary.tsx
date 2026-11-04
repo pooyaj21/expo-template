@@ -4,6 +4,7 @@ import { LightColors } from "@/common/presentation/theme/AppColor";
 import { spacing } from "@/common/presentation/theme/AppSpacing";
 import { CTouchable } from "@/common/presentation/components/CTouchable";
 import { AppConfig } from "@/common/data-access/config/AppConfig";
+import { captureException } from "@/common/data-access/monitoring/sentry";
 
 type State = { error: Error | null };
 
@@ -23,7 +24,7 @@ export class AppErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error) {
-    // Report to a crash reporter here, if the project adds one.
+    captureException(error);
     if (AppConfig.isDevelop) console.error("[boundary]", error);
   }
 

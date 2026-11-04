@@ -10,4 +10,6 @@ export const StorageKeys = {
   DEVICE_UUID: "DEVICE_UUID_STORAGE",
   PUSH_TOKEN: "PUSH_TOKEN_STORAGE",
   ONBOARDING_SEEN: "ONBOARDING_SEEN_STORAGE",
+  /** Persisted by the feature-flag store (devOverrides only). */
+  FEATURE_FLAGS: "FEATURE_FLAG_STORAGE",
 } as const;

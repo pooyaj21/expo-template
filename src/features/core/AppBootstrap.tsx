@@ -14,6 +14,8 @@ import { useDeepLinks } from "@/features/core/deep-links/business-logic/useDeepL
 import { useNotifications } from "@/features/core/notifications/business-logic/useNotifications";
 import { useScreenTracking } from "@/features/core/analytics/business-logic/useAnalytics";
 import { useEnvironment } from "@/features/core/environment/business-logic/environmentContext";
+import { useGetAppSettings } from "@/features/core/app-settings/business-logic/useGetAppSettings";
+import { useOrientationPolicy } from "@/common/business-logic/hooks/useOrientationPolicy";
 
 type BootstrapStep = "device" | "session";
 
@@ -40,6 +42,10 @@ export const AppBootstrap = ({ children }: { children: ReactNode }) => {
   useDeepLinks();
   useNotifications();
   useScreenTracking();
+  useOrientationPolicy();
+  // Unauthenticated; failure must not block splash. Mirrors into settings +
+  // feature-flag stores when the response arrives.
+  useGetAppSettings();
 
   useEffect(() => {
     if (deviceReady) return;

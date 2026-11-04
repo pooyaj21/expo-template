@@ -3,6 +3,7 @@ import { StyleProp, View, ViewStyle } from "react-native";
 import { StatusBar, StatusBarStyle } from "expo-status-bar";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/common/presentation/providers/ThemeProvider";
+import { PageBlurProvider } from "@/common/presentation/providers/PageBlurContext";
 
 type PageContainerProps = {
   children: ReactNode;
@@ -10,7 +11,10 @@ type PageContainerProps = {
   safeEdges?: "top" | "bottom" | "both" | "none";
   statusBarStyle?: StatusBarStyle;
   background?: string;
+  /** Mount `PageBlurProvider` so `AppToolbarBlur` can portal above scrolling content. */
+  blurToolbar?: boolean;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 };
 
 /** The root of every screen: safe-area insets, background, status bar. */
@@ -19,7 +23,9 @@ export const PageContainer = ({
   safeEdges = "both",
   statusBarStyle = "dark",
   background,
+  blurToolbar = false,
   style,
+  testID,
 }: PageContainerProps) => {
   const { colors } = useAppTheme();
   const insets = useSafeAreaInsets();
@@ -31,6 +37,7 @@ export const PageContainer = ({
 
   return (
     <View
+      testID={testID}
       style={[
         {
           flex: 1,
@@ -42,7 +49,7 @@ export const PageContainer = ({
       ]}
     >
       <StatusBar style={statusBarStyle} />
-      {children}
+      {blurToolbar ? <PageBlurProvider>{children}</PageBlurProvider> : children}
     </View>
   );
 };

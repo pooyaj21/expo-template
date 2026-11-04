@@ -1,16 +1,18 @@
 import { ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { useAppTheme } from "@/common/presentation/providers/ThemeProvider";
 import { spacing } from "@/common/presentation/theme/AppSpacing";
-import { AppPressable } from "@/common/presentation/components/app/AppPressable";
+import { AppBackIcon } from "@/common/presentation/components/app/AppBackIcon";
 import { useAppRouter } from "@/common/business-logic/hooks/useAppRouter";
 
-type AppToolbarProps = {
+export const APP_TOOLBAR_HEIGHT = 56;
+
+export type AppToolbarProps = {
   title?: string;
   showBack?: boolean;
   onBack?: () => void;
   end?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 };
 
 export const AppToolbar = ({
@@ -18,29 +20,16 @@ export const AppToolbar = ({
   showBack = true,
   onBack,
   end,
+  style,
 }: AppToolbarProps) => {
-  const { colors, typography, isRtl } = useAppTheme();
+  const { colors, typography } = useAppTheme();
   const router = useAppRouter();
-
   const canGoBack = showBack && (onBack != null || router.canGoBack());
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <View style={styles.side}>
-        {canGoBack && (
-          <AppPressable
-            enableAnimation
-            onPress={onBack ?? router.back}
-            hitSlop={12}
-          >
-            {/* The chevron points the way "back" reads in the active script. */}
-            <Ionicons
-              name={isRtl ? "chevron-forward" : "chevron-back"}
-              size={24}
-              color={colors.text.primary}
-            />
-          </AppPressable>
-        )}
+        {canGoBack && <AppBackIcon onPress={onBack} />}
       </View>
 
       <Text
@@ -60,10 +49,10 @@ export const AppToolbar = ({
 
 const styles = StyleSheet.create({
   container: {
+    height: APP_TOOLBAR_HEIGHT,
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
   },
   side: { width: 40, justifyContent: "center" },
 });

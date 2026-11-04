@@ -19,6 +19,7 @@ import { DialogManagerProvider } from "@/features/core/dialogs/presentation/Dial
 import { useSessionStoreToken } from "@/features/core/session/business-logic/store/sessionSelectors";
 import { AlertHost } from "@/features/core/alerts/presentation/AlertHost";
 import { AppBootstrap } from "@/features/core/AppBootstrap";
+import { BlurTargetProvider } from "@/common/presentation/providers/BlurTargetContext";
 import "@/features/core/CoreBootstrap";
 
 const queryClient = createQueryClient();
@@ -39,10 +40,12 @@ export const CoreProviders = ({ children }: { children: ReactNode }) => (
               <ScopedCore>
                 <ApiClientCore>
                   <BottomSheetModalProvider>
-                    <DialogManagerProvider>
-                      <AppBootstrap>{children}</AppBootstrap>
-                      <AlertHost />
-                    </DialogManagerProvider>
+                    <BlurTargetProvider>
+                      <DialogManagerProvider>
+                        <AppBootstrap>{children}</AppBootstrap>
+                        <AlertHost />
+                      </DialogManagerProvider>
+                    </BlurTargetProvider>
                   </BottomSheetModalProvider>
                 </ApiClientCore>
               </ScopedCore>

@@ -11,11 +11,18 @@ Architecture + React Compiler.
 
 **App shell** — bilingual en/ar with RTL · colour, typography and spacing tokens
 · runtime-switchable environments with a shake-to-open debug screen · a
-bootstrap gate that owns the splash · global error boundary.
+bootstrap gate that owns the splash · global error boundary · light Sentry
+(`EXPO_PUBLIC_SENTRY_DSN`, no-ops until set).
 
 **Identity & data** — secure token storage with sign-out on 401 · a per-install
 device id on every request · an axios client that knows about neither ·
 TanStack Query scoped by environment + language + session.
+
+**Core product plumbing** — `feature-flags` (devOverride → server → env →
+default) · `app-settings` (`GET /app/settings`, mirrors flags) · orientation
+policy for phones vs large screens · blur stack (`AppBlurView` /
+`AppToolbarBlur` / `blurToolbar`) · tablet tokens via `DimensionProvider` +
+`useDimensions` (600 + aspect).
 
 **Plumbing you would otherwise rebuild** — toasts fed automatically by API
 failures · push notification permission, token and tap-routing · deep links · an
@@ -26,18 +33,23 @@ token in the keychain, sign-out on 401, the `Authorization` header — so each
 project adds its own login flow against `useSession().signIn` / `signOut`.
 
 **Components** — `AppButton` `AppText` `AppTextInput` `AppSearchInput`
-`AppPinCode` `AppSwitch` `AppRadioButton` `AppToolbar` `AppImage`
+`AppPinCode` `AppSwitch` `AppRadioButton` `AppToolbar` `AppToolbarBlur`
+`AppToolbarButton` `AppBackIcon` `AppBlurView` `AppBlurTarget` `AppList`
+`AppEmptyState` `AppSelectionRow` `AppRefreshControl` `AppImage`
 `AppBottomSheet` `AppExpandable` `AppKeyboardAvoidingView` `AppPressable` ·
 `PageContainer` `StateHandler` `Loading` `ErrorView` `Skeleton` `IconView`
 `Divider` `Spacer` `CTouchable`.
 
 **Hooks & utils** — `useAppRouter` `useForm` `useHardwareBackPress` `useShake`
-`useHiddenTap` `useAppState` `useCountdown` `useDimensions` `useDebouncedValue`
-`useNavParams` · validators, formatters, responsive grid maths.
+`useHiddenTap` `useAppState` `useCountdown` `useDimensions`
+`useColumnSidePadding` `useOrientationPolicy` `useDebouncedValue` `useNavParams`
+· `haptics` wrapper · validators, formatters, responsive grid maths.
 
 **Tooling** — ESLint enforcing the layer boundaries · Prettier · husky
-(lint-staged on commit, type-check on push) · a feature generator · an Expo
-config plugin for Android release signing.
+(lint-staged on commit, type-check on push) · a feature generator · Maestro
+smoke under `.maestro/` · `.ai` rules/skills linked by
+`bash scripts/link-ai-rules.sh` · an Expo config plugin for Android release
+signing.
 
 ## Start a project
 
@@ -124,17 +136,19 @@ map and the string catalog is how those two files rot.
 `src/features/core/` holds the concerns every app needs, each a normal
 three-layer slice:
 
-| Slice           | Owns                                                     |
-| --------------- | -------------------------------------------------------- |
-| `api`           | the axios client context                                 |
-| `environment`   | which backend the app talks to, switchable at runtime    |
-| `session`       | the token, the user, sign-in / sign-out, 401 handling    |
-| `device`        | the per-install uuid and the `Device-Id` header          |
-| `alerts`        | the toast channel, the API→toast bridge, one render host |
-| `analytics`     | the event catalog and the vendor adapter registry        |
-| `notifications` | push permission, token, and notification-tap routing     |
-| `deep-links`    | URL → route resolution for cold and warm starts          |
-| `dialogs`       | the lazy bottom-sheet manager and the shared confirm     |
+| Slice           | Owns                                                        |
+| --------------- | ----------------------------------------------------------- |
+| `api`           | the axios client context                                    |
+| `environment`   | which backend the app talks to, switchable at runtime       |
+| `session`       | the token, the user, sign-in / sign-out, 401 handling       |
+| `device`        | the per-install uuid and the `Device-Id` header             |
+| `alerts`        | the toast channel, the API→toast bridge, one render host    |
+| `analytics`     | the event catalog and the vendor adapter registry           |
+| `notifications` | push permission, token, and notification-tap routing        |
+| `deep-links`    | URL → route resolution for cold and warm starts             |
+| `dialogs`       | the lazy bottom-sheet manager and the shared confirm        |
+| `feature-flags` | flag catalog + resolve order (dev → server → env → default) |
+| `app-settings`  | `GET /app/settings`; mirrors `feature_flags` into flags     |
 
 `CoreProviders` composes them; `CoreBootstrap` runs their side-effect
 registration; `AppBootstrap` gates the first render and owns the splash.

@@ -4,12 +4,14 @@ Cohesive concerns several features need. Each is a normal VLFA slice —
 `data-access/`, `business-logic/`, `presentation/` — and omits a layer folder
 only when that layer has zero files.
 
-| Slice         | Owns                                                            |
-| ------------- | --------------------------------------------------------------- |
-| `api`         | The `ApiClientProvider` / `useApiClient` context                |
-| `environment` | Which backend the app talks to, switchable at runtime           |
-| `session`     | The access token, the signed-in user, sign-in / sign-out        |
-| `alerts`      | The toast channel, the API→toast bridge, the single render host |
+| Slice           | Owns                                                                 |
+| --------------- | -------------------------------------------------------------------- |
+| `api`           | The `ApiClientProvider` / `useApiClient` context                     |
+| `environment`   | Which backend the app talks to, switchable at runtime                |
+| `session`       | The access token, the signed-in user, sign-in / sign-out             |
+| `alerts`        | The toast channel, the API→toast bridge, the single render host      |
+| `feature-flags` | Flag catalog + resolve order (dev → server → env → default)          |
+| `app-settings`  | `GET /app/settings` + store; mirrors `feature_flags` into flag store |
 
 `CoreProviders.tsx` and `CoreBootstrap.ts` sit at `features/core/` itself, not
 inside a slice.
@@ -22,7 +24,7 @@ The one file allowed to know about every slice. Order is not arbitrary:
 GestureHandlerRootView → SafeAreaProvider → Environment → Localization →
 AppTheme (typesets per script) → QueryClient → QueryScope (env + language +
 session) → ApiClient (base URL from environment) → BottomSheetModal →
-DialogManager → AppBootstrap → children + AlertHost
+BlurTargetProvider → DialogManager → AppBootstrap → children + AlertHost
 ```
 
 When the kernel needs a value from a slice, the kernel exposes a **prop** and

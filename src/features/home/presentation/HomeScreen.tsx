@@ -8,6 +8,7 @@ import { radius, spacing } from "@/common/presentation/theme/AppSpacing";
 import { useLocalization } from "@/common/business-logic/localization/localizationContext";
 import { useAppRouter } from "@/common/business-logic/hooks/useAppRouter";
 import { routes } from "@/common/business-logic/routes/paths";
+import { TestIdEnums } from "@/common/business-logic/testIds";
 import { AppConfig } from "@/common/data-access/config/AppConfig";
 
 const LAYERS = [
@@ -31,7 +32,7 @@ export const HomeScreen = () => {
   const router = useAppRouter();
 
   return (
-    <PageContainer>
+    <PageContainer testID={TestIdEnums.HOME_SCREEN}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <View style={{ flex: 1, gap: spacing.xxs }}>
@@ -85,6 +86,20 @@ export const HomeScreen = () => {
             </View>
           ))}
         </View>
+
+        <AppPressable
+          testID={TestIdEnums.HOME_EXAMPLE_LIST}
+          enableAnimation
+          onPress={() => router.push(routes.example())}
+          style={[styles.card, { backgroundColor: colors.primary.light }]}
+        >
+          <AppText size={14} weight="semiBold" color={colors.primary.dark}>
+            {getString("example_title")}
+          </AppText>
+          <AppText size={12} color="secondary">
+            {getString("home_example_cta")}
+          </AppText>
+        </AppPressable>
 
         {AppConfig.isDevelop && (
           <AppText

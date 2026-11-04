@@ -1,0 +1,12 @@
+appId: com.pj21.apptemplate
+---
+- runFlow:
+    when:
+      visible: ".*LogBox.*|Open debugger to view warnings.*"
+    commands:
+      - tapOn:
+          text: ".*LogBox.*|Open debugger to view warnings.*"
+          optional: true
+      - tapOn:
+          text: "Dismiss"
+          optional: true

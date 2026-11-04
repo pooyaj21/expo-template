@@ -82,6 +82,17 @@ Never skip a step; never let a screen see axios or React Query.
 | `src/**/presentation/**`   | [`src/common/presentation/CLAUDE.md`](src/common/presentation/CLAUDE.md)     |
 | `src/features/core/**`     | [`src/features/core/CLAUDE.md`](src/features/core/CLAUDE.md)                 |
 
+Companion AI library (symlinked into `.claude/` / `.cursor/` via
+`bash scripts/link-ai-rules.sh`):
+
+| Topic            | Rule                                                         |
+| ---------------- | ------------------------------------------------------------ |
+| Blur             | [`.ai/rules/blur.md`](.ai/rules/blur.md)                     |
+| Tablet           | [`.ai/rules/tablet.md`](.ai/rules/tablet.md)                 |
+| Feature flags    | [`.ai/rules/featureflags.md`](.ai/rules/featureflags.md)     |
+| Maestro / testID | [`.ai/rules/testing.md`](.ai/rules/testing.md)               |
+| Rule authoring   | [`.ai/rules/rule-authoring.md`](.ai/rules/rule-authoring.md) |
+
 `src/features/example/` is a complete reference slice — read it before writing a
 new feature, and delete it once the project has real features.
 

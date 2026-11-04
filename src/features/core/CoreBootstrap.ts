@@ -10,8 +10,10 @@ import "@/features/core/session/business-logic/sessionHeaders";
 import "@/features/core/device/business-logic/deviceHeaders";
 import "@/features/core/analytics/business-logic/analyticsBootstrap";
 
+import { initSentry } from "@/common/data-access/monitoring/sentry";
 import { startAlertBridge } from "@/features/core/alerts/business-logic/alertBridge";
 
+initSentry();
 startAlertBridge();
 
 export const coreBootstrapped = true;
