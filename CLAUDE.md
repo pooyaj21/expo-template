@@ -24,9 +24,9 @@ npm run build:develop   # local release lanes via scripts/build-local.sh
 
 - `src/features/<feature>/{presentation,business-logic,data-access}/` — feature slices
 - `src/common/{presentation,business-logic,data-access}/` — shared **atoms** (includes `useLocalization` / `useAppTheme` hooks + Localization/Theme providers)
-- `src/features/core/<name>/` — shared **slices** (environment, app-boot, device, feature-flags, navigation, dialogs, debug, error-pages); same three layers as normal features
+- `src/features/core/<name>/` — shared **slices** (environment, app-boot, device, feature-flags, navigation, dialogs, alerts, first-run, app-settings, debug, error-pages); same three layers as normal features
 - `src/app/` — Expo Router only (thin shells)
-- `src/features/CoreBootstrap.ts` — side-effect registrations for core slices
+- `src/features/CoreBootstrap.ts` — side-effect registrations for core slices (device headers, feature-flags boot, app-settings soft boot)
 
 **Dependency direction:** `app → features/<x> → features/core → common`.
 
@@ -36,7 +36,7 @@ npm run build:develop   # local release lanes via scripts/build-local.sh
 
 **No barrel index files.** PascalCase `.tsx`, camelCase `<feature>X.ts`, kebab-case folders. Named arrow-function exports. Aliases: `@/*` → `src/*`, `@assets/*` → `assets/*`.
 
-Root provider order: ErrorBoundary → Environment → Localization → Theme → QueryClient → GestureHandlerRootView → BottomSheetModal → DialogManager → AppBoot → (Stack, Toast, DebugMenuHost).
+Root provider order: ErrorBoundary → Environment → Localization → Theme → QueryClient (+ `setupQueryManagers` / `usePurgeStaleDefaultQueryScopes`) → GestureHandlerRootView → BottomSheetModal → DialogManager → AlertProvider → AppBoot → (Stack, AppToast, FirstRunHost; DebugMenuHost wraps inside AppBoot).
 
 Full write-up: **`docs/architecture.md`**. New feature recipe: **`docs/adding-features.md`**. Scoped agent rules: **`.ai/rules/`** (symlinked into `.claude/` / `.cursor/`).
 
@@ -53,20 +53,27 @@ Full write-up: **`docs/architecture.md`**. New feature recipe: **`docs/adding-fe
 
 ## Where things live
 
-| Concern                | Path                                                                   |
-| ---------------------- | ---------------------------------------------------------------------- |
-| API client             | `src/common/data-access/api/`                                          |
-| Response envelopes     | `src/common/data-access/type/responseTypes.ts`                         |
-| Routes map             | `src/common/business-logic/routes/paths.ts`                            |
-| Typed navigation       | `src/features/core/navigation/business-logic/useAppRouter.ts`          |
-| App store composer     | `src/common/business-logic/store/app-state.ts`                         |
-| Storage                | `src/common/business-logic/interfaces/storageInterface.ts`             |
-| Shared UI              | `src/common/presentation/components/`                                  |
-| Tokens                 | `src/common/presentation/token/`                                       |
-| i18n / theme hooks     | `src/common/business-logic/hooks/useLocalization.ts`, `useAppTheme.ts` |
-| i18n / theme providers | `src/common/presentation/providers/`                                   |
-| Example feature        | `src/features/example/`                                                |
-| Agent rules/skills     | `.ai/rules/`, `.ai/skills/`                                            |
+| Concern                | Path                                                                     |
+| ---------------------- | ------------------------------------------------------------------------ |
+| API client             | `src/common/data-access/api/`                                            |
+| Query managers setup   | `src/common/data-access/api/setupQueryManagers.ts` (call from `_layout`) |
+| Scope purge hook       | `src/common/business-logic/hooks/usePurgeStaleDefaultQueryScopes.ts`     |
+| Network status (UI)    | `src/common/business-logic/hooks/useNetworkStatus.ts`                    |
+| Auth refresh slot      | `src/common/data-access/api/authRefresh.ts` + `business-logic/session/`  |
+| Response / entity DTOs | `src/common/data-access/type/`                                           |
+| Routes map             | `src/common/business-logic/routes/paths.ts`                              |
+| Typed navigation       | `src/features/core/navigation/business-logic/useAppRouter.ts`            |
+| Alerts / toasts        | `src/features/core/alerts/` (+ `AppToast` host)                          |
+| First-run prompts      | `src/features/core/first-run/` (`FirstRunHost` in `_layout`)             |
+| App settings cache     | `src/features/core/app-settings/` (soft boot via `CoreBootstrap`)        |
+| App store composer     | `src/common/business-logic/store/app-state.ts`                           |
+| Storage                | `src/common/business-logic/interfaces/storageInterface.ts`               |
+| Shared UI              | `src/common/presentation/components/`                                    |
+| Tokens                 | `src/common/presentation/token/`                                         |
+| i18n / theme hooks     | `src/common/business-logic/hooks/useLocalization.ts`, `useAppTheme.ts`   |
+| i18n / theme providers | `src/common/presentation/providers/`                                     |
+| Example feature        | `src/features/example/`                                                  |
+| Agent rules/skills     | `.ai/rules/`, `.ai/skills/` (symlink via `scripts/link-ai-rules.sh`)     |
 
 ## Workflows
 

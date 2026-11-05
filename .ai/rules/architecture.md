@@ -13,7 +13,7 @@ This repo uses **Vertical Layered Feature Architecture (VLFA)**. Deep notes live
 ## Layout
 
 - `src/common/{presentation,business-logic,data-access}/` — shared **atoms**: things that _are_ a layer (`AppButton`, `responseTypes`, `paths.ts`, observability). Canonical `useLocalization` / `useAppTheme` live under `common/business-logic/hooks/`; their Provider components live under `common/presentation/providers/`.
-- `src/features/core/<name>/` — shared **slices**: cohesive concerns several features need (`environment`, `app-boot`, `device`, `feature-flags`, `navigation`, `dialogs`, `debug`, `error-pages`). Always the three layers when files exist; omit a layer folder only when it has zero files. Core slice layers follow the same import rules as normal features.
+- `src/features/core/<name>/` — shared **slices**: cohesive concerns several features need (`environment`, `app-boot`, `device`, `feature-flags`, `navigation`, `dialogs`, `alerts`, `first-run`, `app-settings`, `debug`, `error-pages`). Always the three layers when files exist; omit a layer folder only when it has zero files. Core slice layers follow the same import rules as normal features.
 - `src/features/<feature>/{presentation,business-logic,data-access}/` — feature slices. Feature Zustand slices live under `business-logic/store/` and are composed in `common/business-logic/store/app-state.ts`.
 - `src/app/` — Expo Router routes only (layouts, redirects, thin shells that render feature presentation). **Do not** add `components/` trees under `src/app/`.
 - `src/features/CoreBootstrap.ts` — side-effect composition root that imports each core slice's registration.

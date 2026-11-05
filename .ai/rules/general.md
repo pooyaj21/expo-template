@@ -33,8 +33,9 @@ docs/
 Folder-scoped rules load automatically when you work in that folder:
 
 - [`.ai/rules/screens.md`](screens.md) — Expo Router route shells (`src/app/`)
-- [`.ai/rules/network.md`](network.md) — feature data-access service → queries → BL hook
-- [`.ai/rules/state.md`](state.md) — Zustand, providers, hooks
+- [`.ai/rules/network.md`](network.md) — feature data-access service → queries → BL hook, query managers, 401 refresh slot
+- [`.ai/rules/state.md`](state.md) — Zustand, providers, hooks, React Query scope/focus/online
+- [`.ai/rules/entities.md`](entities.md) — shared generic API entity DTOs (`common/data-access/type`)
 - [`.ai/rules/ui.md`](ui.md) — components, theming, lists (`common/presentation`, feature presentation)
 - [`.ai/rules/dialogs.md`](dialogs.md) — bottom-sheet dialogs (`features/core/dialogs`)
 - [`.ai/rules/tablet.md`](tablet.md) — tablet / large-screen layout

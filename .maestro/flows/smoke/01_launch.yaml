@@ -1,4 +1,4 @@
-appId: com.pj21.apptemplate
+appId: com.pj21.apptemplate.develop
 name: "Smoke: app launches, example list visible"
 tags:
   - smoke

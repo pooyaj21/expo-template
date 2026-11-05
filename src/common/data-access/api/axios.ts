@@ -1,6 +1,11 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from "axios";
 import { apiErrorChannel } from "@/common/data-access/api/apiErrorChannel";
 import { apiResponseChannel } from "@/common/data-access/api/apiResponseChannel";
+import {
+  markAuthRetry,
+  runAuthRefreshSingleFlight,
+  shouldAttemptAuthRefresh,
+} from "@/common/data-access/api/authRefresh";
 import { resolveRequestHeaders } from "@/common/data-access/api/requestHeaders";
 import { prettyLog } from "@/common/data-access/log/prettyLog";
 import {
@@ -69,7 +74,7 @@ const attachInterceptors = (api: AxiosInstance): AxiosInstance => {
       publishToastFromMeta(response.data, MetaTypeEnums.SUCCESS, response);
       return response;
     },
-    (error: AxiosError) => {
+    async (error: AxiosError) => {
       prettyLog("❌ Response Error", {
         url: error.config?.url,
         code: error.code,
@@ -81,6 +86,13 @@ const attachInterceptors = (api: AxiosInstance): AxiosInstance => {
           ?._response,
       });
       publishToastFromMeta(error.response?.data, MetaTypeEnums.ERROR);
+
+      if (shouldAttemptAuthRefresh(error)) {
+        const refreshed = await runAuthRefreshSingleFlight();
+        if (refreshed) {
+          return api.request(markAuthRetry(error.config));
+        }
+      }
 
       if (error.response?.status === 401) {
         apiErrorChannel.publish(error);

@@ -6,10 +6,7 @@ import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
 import { useFeatureFlag } from "@/features/core/feature-flags/business-logic/useFeatureFlag";
 import { useAppRouter } from "@/features/core/navigation/business-logic/useAppRouter";
 import type { ExamplePost } from "@/features/example/business-logic/exampleModels";
-import {
-  useIsExampleFavorite,
-  useToggleExampleFavorite,
-} from "@/features/example/business-logic/store/exampleFavoritesSelectors";
+import { useExampleFavoriteToggle } from "@/features/example/business-logic/useExampleFavoriteToggle";
 
 type ExampleCardProps = {
   post: ExamplePost;
@@ -22,8 +19,7 @@ export const ExampleCard = ({ post, testID }: ExampleCardProps) => {
   const { navigateTo } = useAppRouter();
   const detailEnabled = useFeatureFlag("EXAMPLE_DETAIL");
   const favoritesEnabled = useFeatureFlag("EXAMPLE_FAVORITES");
-  const isFavorite = useIsExampleFavorite(post.id);
-  const toggleFavorite = useToggleExampleFavorite();
+  const { isFavorite, toggle } = useExampleFavoriteToggle(post.id);
 
   const openDetail = () => {
     navigateTo.exampleDetail({ id: post.id });
@@ -49,7 +45,7 @@ export const ExampleCard = ({ post, testID }: ExampleCardProps) => {
         {favoritesEnabled ? (
           <AppPressable
             testID={`example-favorite-${post.id}`}
-            onPress={() => toggleFavorite(post.id)}
+            onPress={toggle}
             hitSlop={8}
             style={styles.favoriteButton}
           >

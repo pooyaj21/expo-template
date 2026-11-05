@@ -1,5 +1,8 @@
 import { createContext, useContext } from "react";
-import type { ConfirmDialogOptions } from "@/features/core/dialogs/business-logic/dialogTypes";
+import type {
+  ConfirmDialogOptions,
+  DateDialogOptions,
+} from "@/features/core/dialogs/business-logic/dialogTypes";
 
 export type DialogApi<O> = {
   present: (options?: O) => void;
@@ -8,6 +11,7 @@ export type DialogApi<O> = {
 
 export type DialogManagerContextType = {
   confirm: DialogApi<ConfirmDialogOptions>;
+  date: DialogApi<DateDialogOptions>;
 };
 
 export const DialogManagerContext =

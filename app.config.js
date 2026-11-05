@@ -3,6 +3,19 @@
 // the JS bundle. Runtime config lives in features/core/environment.
 require("dotenv").config();
 
+// =============================================================================
+// IDENTITY — single edit point for `npm run rename`.
+// Per-flavor suffixes (.develop / .stage, display name, scheme) are derived below.
+// =============================================================================
+const IDENTITY = {
+  name: "App Template",
+  slug: "app-template",
+  /** Base iOS bundle id AND Android applicationId (no flavor suffix). */
+  bundleId: "com.pj21.apptemplate",
+  /** Custom URL scheme base (no flavor suffix). */
+  scheme: "apptemplate",
+};
+
 // Hard-fail helper for CI/prebuild values that must never be empty.
 const requireEnv = (name) => {
   // Dynamic lookup is intentional for Node prebuild — not a JS-bundle read.
@@ -22,16 +35,37 @@ const normalizeFlavor = (raw) => {
   return raw || "develop";
 };
 
-export { requireEnv };
+/** @param {ReturnType<typeof normalizeFlavor>} flavor */
+const flavorIdentity = (flavor) => {
+  const suffix =
+    flavor === "develop" ? ".develop" : flavor === "stage" ? ".stage" : "";
+  const nameSuffix =
+    flavor === "develop" ? " Dev" : flavor === "stage" ? " Stage" : "";
+  const schemeSuffix =
+    flavor === "develop" ? "-develop" : flavor === "stage" ? "-stage" : "";
+
+  return {
+    displayName: `${IDENTITY.name}${nameSuffix}`,
+    bundleIdentifier: `${IDENTITY.bundleId}${suffix}`,
+    androidPackage: `${IDENTITY.bundleId}${suffix}`,
+    scheme: `${IDENTITY.scheme}${schemeSuffix}`,
+    iconDir: `./assets/images/${flavor}`,
+  };
+};
+
+/** Comma-separated https hosts claimed for universal / app links. Empty = off. */
+const parseAppLinkHosts = () =>
+  (process.env.APP_LINK_HOSTS || "")
+    .split(",")
+    .map((h) => h.trim())
+    .filter(Boolean);
+
+export { requireEnv, IDENTITY };
 
 export default ({ config }) => {
   const flavor = normalizeFlavor(process.env.EXPO_PUBLIC_FLAVOR);
   const isDevelop = flavor !== "production";
-
-  // Identity is fixed for this template — do not read from env (avoids drift).
-  const bundleIdentifier = "com.pj21.apptemplate";
-  const androidPackage = "com.pj21.apptemplate";
-  const appScheme = "apptemplate";
+  const id = flavorIdentity(flavor);
 
   // Optional local-signing identity. requireEnv keeps the helper available for
   // CI/prebuild scripts that want a hard fail; local prebuild skips when unset.
@@ -51,36 +85,45 @@ export default ({ config }) => {
     }
   }
 
+  const appLinkHosts = parseAppLinkHosts();
+  // Precise claims only — keep in sync with docs/deeplinks/* and +native-intent.
+  const appLinkPathData = [{ path: "/" }, { pathPrefix: "/example/" }];
+
   return {
     expo: {
-      name: "App Template",
-      slug: "app-template",
+      name: id.displayName,
+      slug: IDENTITY.slug,
       version,
       orientation: "portrait",
-      icon: "./assets/images/icon.png",
-      scheme: appScheme,
+      icon: `${id.iconDir}/icon.png`,
+      scheme: id.scheme,
       userInterfaceStyle: "automatic",
       ios: {
-        bundleIdentifier,
+        bundleIdentifier: id.bundleIdentifier,
         ...(appleTeamId ? { appleTeamId } : {}),
         supportsTablet: true,
         buildNumber,
-        icon: "./assets/images/icon.png",
+        icon: `${id.iconDir}/icon.png`,
         infoPlist: {
           CFBundleURLTypes: [
             {
-              CFBundleURLSchemes: [appScheme],
+              CFBundleURLSchemes: [id.scheme],
             },
           ],
         },
+        ...(appLinkHosts.length > 0
+          ? {
+              associatedDomains: appLinkHosts.map((host) => `applinks:${host}`),
+            }
+          : {}),
       },
       android: {
-        package: androidPackage,
+        package: id.androidPackage,
         versionCode,
         adaptiveIcon: {
           backgroundColor: "#ffffff",
-          foregroundImage: "./assets/images/android-icon-foreground.png",
-          monochromeImage: "./assets/images/android-icon-monochrome.png",
+          foregroundImage: `${id.iconDir}/android-icon-foreground.png`,
+          monochromeImage: `${id.iconDir}/android-icon-monochrome.png`,
         },
         predictiveBackGestureEnabled: false,
         allowBackup: false,
@@ -90,6 +133,24 @@ export default ({ config }) => {
           : {
               blockedPermissions: ["android.permission.ACTIVITY_RECOGNITION"],
             }),
+        ...(appLinkHosts.length > 0
+          ? {
+              intentFilters: [
+                {
+                  action: "VIEW",
+                  autoVerify: true,
+                  data: appLinkHosts.flatMap((host) =>
+                    appLinkPathData.map((pathSpec) => ({
+                      scheme: "https",
+                      host,
+                      ...pathSpec,
+                    })),
+                  ),
+                  category: ["BROWSABLE", "DEFAULT"],
+                },
+              ],
+            }
+          : {}),
       },
       plugins: [
         ...(isDevelop ? [] : [["expo-sensors", { motionPermission: false }]]),
@@ -103,7 +164,7 @@ export default ({ config }) => {
         [
           "expo-splash-screen",
           {
-            image: "./assets/images/splash-icon.png",
+            image: `${id.iconDir}/splash-icon.png`,
             imageWidth: 200,
             resizeMode: "contain",
             backgroundColor: "#ffffff",
@@ -126,10 +187,17 @@ export default ({ config }) => {
         ],
         "./plugins/withAndroidResConfigs",
         "./plugins/withFolderConfigChanges",
+        "./plugins/withFastlane",
         ...(process.env.CI ? [] : ["./plugins/withAndroidSigning"]),
       ],
       extra: {
         flavor,
+        identity: {
+          baseName: IDENTITY.name,
+          slug: IDENTITY.slug,
+          baseBundleId: IDENTITY.bundleId,
+          baseScheme: IDENTITY.scheme,
+        },
       },
       experiments: {
         typedRoutes: true,

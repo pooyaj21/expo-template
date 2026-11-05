@@ -1,5 +1,5 @@
 ---
-description: "Zustand stores, React providers, and custom hooks under VLFA paths"
+description: "Zustand stores, React providers, custom hooks, and React Query scope/focus/online bridges under VLFA paths"
 globs: src/**/business-logic/**/*.{ts,tsx},src/common/business-logic/store/**/*.{ts,tsx},src/**/presentation/*Provider.tsx
 alwaysApply: false
 paths:
@@ -60,6 +60,14 @@ Rules:
 - Register providers in `src/app/_layout.tsx` in the existing order (see screens rule). Feature-scoped providers register at their feature layout, not the global root.
 - Core slices that must register headers / boot steps / flag sources do so via side-effect imports from `src/features/CoreBootstrap.ts`.
 
+## React Query scope, focus, online
+
+- **Default keys** — `useDefaultQueryKey` appends env + language from `queryScopeRegistry` (`setQueryScope` from Environment / Localization providers).
+- **Purge on scope change** — mount `usePurgeStaleDefaultQueryScopes` under `QueryClientProvider`. It removes queries that matched the **previous** scope only (not a full cache clear).
+- **Managers** — call `setupQueryManagers()` once from the root layout (`src/common/data-access/api/setupQueryManagers.ts`): NetInfo → `onlineManager`, AppState → `focusManager`. Keeps `refetchOnWindowFocus` correct on RN (stale queries refetch on foreground).
+- **UI online flag** — `useNetworkStatus()` for banners; do not invent a second NetInfo subscription pattern elsewhere.
+- Details and the future session auth plug-in: `.ai/rules/network.md`.
+
 ## Hooks
 
 - File: `use<Name>.ts` (or `.tsx` if it renders JSX), camelCase, under the owning layer.
@@ -67,3 +75,4 @@ Rules:
 - Return a plain object of named fields — never a tuple for domain APIs.
 - Do not call hooks conditionally. Gate the effect inside, not the hook call.
 - Shared cross-cutting hooks live in `src/common/business-logic/hooks/`.
+- Session auth registration (non-hook) lives in `src/common/business-logic/session/` — kernel helpers only; the auth feature owns tokens.

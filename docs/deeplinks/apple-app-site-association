@@ -1,0 +1,25 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "TEAMID.com.pj21.apptemplate",
+          "TEAMID.com.pj21.apptemplate.develop",
+          "TEAMID.com.pj21.apptemplate.stage"
+        ],
+        "components": [
+          { "/": "/" },
+          { "/": "/example/*" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "TEAMID.com.pj21.apptemplate",
+      "TEAMID.com.pj21.apptemplate.develop",
+      "TEAMID.com.pj21.apptemplate.stage"
+    ]
+  }
+}

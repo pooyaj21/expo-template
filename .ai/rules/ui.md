@@ -11,7 +11,12 @@ paths:
 
 ## Components
 
-Shared primitives live in `src/common/presentation/components/` and are prefixed `App` when they are branded building blocks (`AppButton`, `AppText`, `AppTextInput`, `AppToolbar`, `AppPressable`, `AppImage`, `AppList`, `AppToast`, …). Unprefixed names are fine for general helpers (`Loading`, `Spacer`, `PageContainer`, `StateHandler`, `Skeleton`).
+Shared primitives live in `src/common/presentation/components/` and are prefixed `App` when they are branded building blocks (`AppButton`, `AppText`, `AppTextInput`, `AppToolbar`, `AppPressable`, `AppImage`, `AppList`, `AppToast`, `AppWebView`, …). Unprefixed names are fine for general helpers (`Loading`, `Spacer`, `PageContainer`, `StateHandler`, `Skeleton`).
+
+- **`AppToast`**: sonner-native host only. Feature code raises toasts via `useAlerts()` (`features/core/alerts`); do not subscribe API channels here.
+- **`AppWebView`**: themed loading/error, external links via `openUrl`, Android back navigates web history. Keep brand-free (no product-specific injected globals).
+
+Date picking lives under dialogs (`AppDateBottomSheetDialog` + `useDialogManager().date`) because it composes `AppBaseBottomSheetDialog` — `common/` must not import `features/`.
 
 Feature-specific UI stays under `src/features/<feature>/presentation/`.
 

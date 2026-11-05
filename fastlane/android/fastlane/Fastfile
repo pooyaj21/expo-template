@@ -1,0 +1,201 @@
+require 'dotenv'
+Dotenv.load('../../.env')
+
+require 'base64'
+require 'json'
+require 'tmpdir'
+
+# ANDROID_PACKAGE_NAME must equal android.package in app.config.js (after flavor
+# suffixes), or Play rejects the AAB as a package that does not match the listing.
+ANDROID_PACKAGE_NAME = ENV["ANDROID_PACKAGE_NAME"]
+
+TAG_FORMAT = /\A(\d+\.\d+\.\d+)\(#(\d+)\)\z/
+
+# -----------------------------------------------------------------------------
+# Helpers
+# -----------------------------------------------------------------------------
+
+# A CI variable that is not exposed to the job arrives as the literal text
+# "$NAME", not as an empty string, so emptiness alone is not enough.
+UNEXPANDED_REF = /\A\$\{?[A-Z_][A-Z0-9_]*\}?\z/
+
+def check_expanded!(key, value)
+  return value unless value.match?(UNEXPANDED_REF)
+
+  UI.user_error!(
+    "#{key} is the literal \"#{value}\" - the variable is not exposed to this job."
+  )
+end
+
+def require_env(key)
+  value = ENV[key].to_s
+  UI.user_error!("Missing required environment variable: #{key}") if value.strip.empty?
+  check_expanded!(key, value)
+  value
+end
+
+def decode_b64(key)
+  Base64.strict_decode64(require_env(key).gsub(/\s+/, ""))
+rescue ArgumentError
+  UI.user_error!("#{key} is not valid base64")
+end
+
+def decoded_json(key)
+  raw = decode_b64(key)
+  begin
+    JSON.parse(raw)
+  rescue JSON::ParserError
+    UI.user_error!("#{key} is not valid base64-encoded JSON")
+  end
+  raw
+end
+
+def decoded_keystore(key)
+  bytes = decode_b64(key)
+  magic = bytes.byteslice(0, 4).to_s.unpack1("H*")
+  return bytes if magic.to_s.start_with?("feedfeed", "3082")
+
+  UI.user_error!(
+    "#{key} did not decode to a JKS or PKCS12 keystore " \
+    "(#{bytes.bytesize} bytes, magic #{magic.inspect}). " \
+    "Re-create it with: base64 -i release.keystore | pbcopy"
+  )
+end
+
+# plugins/withFastlane.js copies fastlane/android/* into the generated android/
+# folder during `expo prebuild`, so at run time this file is
+# <repo>/android/fastlane/Fastfile.
+def project_root
+  File.expand_path("../..", __dir__)
+end
+
+def android_project_dir
+  [__dir__, Dir.pwd].each do |start|
+    dir = start
+    loop do
+      return dir if File.exist?(File.join(dir, "gradlew"))
+      parent = File.dirname(dir)
+      break if parent == dir
+      dir = parent
+    end
+  end
+  File.join(project_root, "android")
+end
+
+# Prefer ANDROID_KEYSTORE_B64 (CI); otherwise KEYSTORE_PATH, defaulting to
+# <repo>/key.jks for local builds.
+def signing_properties
+  keystore_b64 = ENV["ANDROID_KEYSTORE_B64"].to_s
+
+  if keystore_b64.strip.empty?
+    given = ENV["KEYSTORE_PATH"].to_s.strip
+    given = "key.jks" if given.empty?
+    candidates = [File.expand_path(given), File.expand_path(given, project_root)].uniq
+    store_file = candidates.find { |path| File.exist?(path) }
+    UI.user_error!("Keystore not found. Tried:\n  #{candidates.join("\n  ")}") if store_file.nil?
+  else
+    store_file = File.join(Dir.mktmpdir("app-signing"), "release.keystore")
+    File.binwrite(store_file, decoded_keystore("ANDROID_KEYSTORE_B64"))
+    File.chmod(0o600, store_file)
+  end
+
+  {
+    "android.injected.signing.store.file" => store_file,
+    "android.injected.signing.store.password" => require_env("ANDROID_KEYSTORE_PASSWORD"),
+    "android.injected.signing.key.alias" => require_env("ANDROID_KEY_ALIAS"),
+    "android.injected.signing.key.password" => require_env("ANDROID_KEY_PASSWORD")
+  }
+end
+
+def gradle_output(glob)
+  patterns = [File.join(android_project_dir, glob), glob]
+  [patterns, patterns.flat_map { |pattern| Dir[pattern] }.max_by { |file| File.mtime(file) }]
+end
+
+def built_artifact(shared_value, glob, lane_hint)
+  path = Actions.lane_context[shared_value]
+  return File.expand_path(path) if path
+
+  patterns, found = gradle_output(glob)
+  if found.nil?
+    UI.user_error!(
+      "No artifact matching #{glob} - run the #{lane_hint} lane first.\n" \
+      "Searched:\n  #{patterns.join("\n  ")}\n" \
+      "Working directory: #{Dir.pwd}"
+    )
+  end
+  File.expand_path(found)
+end
+
+def release_notes
+  notes = ENV["RELEASE_NOTES"].to_s.strip
+  return notes unless notes.empty?
+  ENV["CI_COMMIT_TAG_MESSAGE"].to_s.strip
+end
+
+platform :android do
+  desc "Signed release APK"
+  lane :build_apk do
+    gradle(
+      task: 'assemble',
+      build_type: 'Release',
+      properties: signing_properties.merge("reactNativeArchitectures" => "arm64-v8a")
+    )
+  end
+
+  desc "Signed release AAB"
+  lane :build_aab do
+    gradle(
+      task: 'bundle',
+      build_type: 'Release',
+      properties: signing_properties
+    )
+  end
+
+  desc "Optional: upload AAB to Google Play (internal track). Requires PLAY_SERVICE_ACCOUNT_B64 + ANDROID_PACKAGE_NAME."
+  lane :publish_play_internal do
+    aab = built_artifact(
+      SharedValues::GRADLE_AAB_OUTPUT_PATH,
+      "app/build/outputs/bundle/release/*.aab",
+      "build_aab"
+    )
+
+    mapping = Actions.lane_context[SharedValues::GRADLE_MAPPING_TXT_OUTPUT_PATH] ||
+              gradle_output("app/build/outputs/mapping/release/mapping.txt").last
+    UI.important("No R8 mapping file found - Play crash reports stay obfuscated") if mapping.nil?
+
+    package_name = require_env("ANDROID_PACKAGE_NAME")
+    UI.message("Publishing #{File.basename(aab)} to Google Play (#{package_name}, internal)")
+    upload_to_play_store(
+      package_name: package_name,
+      json_key_data: decoded_json("PLAY_SERVICE_ACCOUNT_B64"),
+      track: ENV.fetch("PLAY_TRACK", "internal"),
+      release_status: ENV.fetch("PLAY_RELEASE_STATUS", "completed"),
+      aab: aab,
+      mapping: mapping && File.expand_path(mapping),
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      skip_upload_changelogs: true
+    )
+  end
+
+  desc "Local signed APK (KEYSTORE_PATH / key.jks + ANDROID_KEYSTORE_* in .env)"
+  lane :build_local do
+    gradle(
+      task: 'assemble',
+      build_type: 'Release',
+      properties: signing_properties.merge("reactNativeArchitectures" => "arm64-v8a")
+    )
+  end
+
+  desc "Local signed AAB"
+  lane :bundle_local do
+    gradle(
+      task: 'bundle',
+      build_type: 'Release',
+      properties: signing_properties
+    )
+  end
+end

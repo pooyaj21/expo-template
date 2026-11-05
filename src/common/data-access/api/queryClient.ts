@@ -18,7 +18,8 @@ export const createQueryClient = () =>
           }
           return failureCount < 3;
         },
-        refetchOnWindowFocus: false,
+        // Driven by `setupFocusManager` / AppState → focusManager on RN.
+        refetchOnWindowFocus: true,
       },
       mutations: {
         retry: false,

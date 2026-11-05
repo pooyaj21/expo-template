@@ -7,6 +7,8 @@ import { registerBootStep } from "@/features/core/app-boot/business-logic/bootRe
 import { fetchFeatureFlags } from "@/features/core/feature-flags/data-access/featureFlagService";
 import { useAppStore } from "@/common/business-logic/store/app-state";
 import { prettyLog } from "@/common/data-access/log/prettyLog";
+// Side-effect: registers soft `app-settings` boot step + scope invalidation.
+import "@/features/core/app-settings/business-logic/appSettingsManager";
 
 registerDeviceHeaderProvider();
 

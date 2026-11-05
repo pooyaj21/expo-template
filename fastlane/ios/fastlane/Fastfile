@@ -1,0 +1,272 @@
+require 'dotenv'
+Dotenv.load('../../.env')
+
+require 'base64'
+require 'shellwords'
+require 'tmpdir'
+
+# Resolve the Xcode scheme/workspace name from the generated ios/ folder so a
+# rename of expo.name does not require editing this Fastfile. Override with
+# XCODE_SCHEME when multiple workspaces exist.
+def xcode_scheme
+  from_env = ENV["XCODE_SCHEME"].to_s.strip
+  return from_env unless from_env.empty?
+
+  candidates = Dir[File.expand_path("../*.xcworkspace", __dir__)].map do |path|
+    File.basename(path, ".xcworkspace")
+  end.reject { |name| name == "Pods" }
+
+  UI.user_error!(
+    "Could not find an .xcworkspace next to the Fastfile. " \
+    "Set XCODE_SCHEME or run expo prebuild first. Working directory: #{Dir.pwd}"
+  ) if candidates.empty?
+
+  candidates.first
+end
+
+def release_notes
+  notes = ENV["RELEASE_NOTES"].to_s.strip
+  return notes unless notes.empty?
+  ENV["CI_COMMIT_TAG_MESSAGE"].to_s.strip
+end
+
+# Optional TestFlight external groups, keyed by APP_ENV / EXPO_PUBLIC_FLAVOR.
+# `production` is deliberately absent: those builds upload and stop for a human
+# to distribute from App Store Connect. Override via TESTFLIGHT_GROUPS (CSV).
+TESTFLIGHT_GROUPS_BY_FLAVOR = {
+  "develop" => ["Development"],
+  "development" => ["Development"],
+  "stage" => ["Release candidate"]
+}.freeze
+
+def testflight_groups
+  from_env = ENV["TESTFLIGHT_GROUPS"].to_s.strip
+  return from_env.split(",").map(&:strip).reject(&:empty?) unless from_env.empty?
+
+  flavor = ENV["APP_ENV"].to_s.strip
+  flavor = ENV["EXPO_PUBLIC_FLAVOR"].to_s.strip if flavor.empty?
+  TESTFLIGHT_GROUPS_BY_FLAVOR.fetch(flavor, [])
+end
+
+UNEXPANDED_REF = /\A\$\{?[A-Z_][A-Z0-9_]*\}?\z/
+
+def check_expanded!(key, value)
+  return value unless value.match?(UNEXPANDED_REF)
+
+  UI.user_error!(
+    "#{key} is the literal \"#{value}\" - the variable is not exposed to this job."
+  )
+end
+
+def require_env(key)
+  value = ENV[key].to_s
+  UI.user_error!("Missing required environment variable: #{key}") if value.strip.empty?
+  check_expanded!(key, value)
+  value
+end
+
+def decode_b64(key)
+  Base64.strict_decode64(require_env(key).gsub(/\s+/, ""))
+rescue ArgumentError
+  UI.user_error!("#{key} is not valid base64")
+end
+
+def decoded_p12(key)
+  bytes = decode_b64(key)
+  magic = bytes.byteslice(0, 2).to_s.unpack1("H*")
+  return bytes if magic.to_s.start_with?("3082")
+
+  UI.user_error!(
+    "#{key} did not decode to a PKCS12 certificate " \
+    "(#{bytes.bytesize} bytes, magic #{magic.inspect}). " \
+    "Re-create it with: base64 -i dist.p12 | tr -d '\\n' | pbcopy"
+  )
+end
+
+def profile_plist_value(profile_path, key)
+  Dir.mktmpdir("app-profile") do |dir|
+    plist_path = File.join(dir, "profile.plist")
+    unless system("security cms -D -i #{profile_path.shellescape} > #{plist_path.shellescape} 2>/dev/null")
+      UI.user_error!(
+        "IOS_APPSTORE_PROFILE_B64 did not decode to a .mobileprovision " \
+        "(security could not unwrap it)."
+      )
+    end
+
+    value = `/usr/libexec/PlistBuddy -c #{"Print :#{key}".shellescape} #{plist_path.shellescape} 2>/dev/null`.strip
+    UI.user_error!("Provisioning profile has no :#{key} entry") if value.empty?
+    value
+  end
+end
+
+platform :ios do
+  desc "Fetch App Store Connect API Key"
+  lane :fetch_api_key do
+    app_store_connect_api_key(
+      key_id: require_env("ASC_API_KEY_KEY_ID"),
+      issuer_id: ENV["ASC_API_KEY_ISSUER_ID"],
+      key_content: require_env("ASC_API_KEY_IS_KEY_CONTENT"),
+      is_key_content_base64: true
+    )
+  end
+
+  desc "Setup distribution certificate + App Store profile (CI / store upload)"
+  lane :certificate do
+    setup_ci
+
+    scheme = xcode_scheme
+
+    cert_path = File.join(Dir.mktmpdir("app-signing"), "dist.p12")
+    File.binwrite(cert_path, decoded_p12("IOS_DIST_CERT_P12_B64"))
+    File.chmod(0o600, cert_path)
+
+    import_certificate(
+      certificate_path: cert_path,
+      certificate_password: require_env("IOS_DIST_CERT_PASSWORD"),
+      keychain_name: ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_tmp_keychain",
+      keychain_password: ENV["MATCH_KEYCHAIN_PASSWORD"].to_s
+    )
+
+    profile_path = File.join(Dir.mktmpdir("app-profile"), "appstore.mobileprovision")
+    File.binwrite(profile_path, decode_b64("IOS_APPSTORE_PROFILE_B64"))
+    File.chmod(0o600, profile_path)
+
+    profile_bundle_id = profile_plist_value(profile_path, "Entitlements:application-identifier")
+      .sub(/\A[A-Z0-9]+\./, "")
+    expected_bundle_id = require_env("BUNDLE_IDENTIFIER")
+
+    if profile_bundle_id != expected_bundle_id
+      UI.user_error!(
+        "IOS_APPSTORE_PROFILE_B64 is a profile for #{profile_bundle_id.inspect}, " \
+        "but this build signs #{expected_bundle_id.inspect}."
+      )
+    end
+
+    expiry = profile_plist_value(profile_path, "ExpirationDate")
+    UI.important("Provisioning profile expires #{expiry}")
+
+    install_provisioning_profile(path: profile_path)
+
+    profile_name = profile_plist_value(profile_path, "Name")
+    pinned_name = ENV["APPSTORE_PROFILE_NAME"].to_s.strip
+
+    if !pinned_name.empty? && pinned_name != profile_name
+      UI.user_error!(
+        "APPSTORE_PROFILE_NAME is #{pinned_name.inspect} but the installed profile " \
+        "is named #{profile_name.inspect}."
+      )
+    end
+
+    update_project_team(
+      path: "#{scheme}.xcodeproj",
+      teamid: require_env("ASC_TEAM_ID")
+    )
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "#{scheme}.xcodeproj",
+      team_id: ENV["ASC_TEAM_ID"],
+      code_sign_identity: "Apple Distribution",
+      profile_name: profile_name,
+      targets: [scheme],
+      build_configurations: ["Release"]
+    )
+
+    cocoapods(
+      clean_install: true,
+      repo_update: false
+    )
+
+    require "xcodeproj"
+    pods_project_path = [
+      File.expand_path("../Pods/Pods.xcodeproj", __dir__),
+      "Pods/Pods.xcodeproj"
+    ].find { |path| File.exist?(path) }
+
+    UI.user_error!(
+      "Pods/Pods.xcodeproj not found - cannot strip signing from pod targets. " \
+      "Working directory: #{Dir.pwd}"
+    ) if pods_project_path.nil?
+
+    pods_project = Xcodeproj::Project.open(pods_project_path)
+    pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings["CODE_SIGNING_ALLOWED"] = "NO"
+        config.build_settings["CODE_SIGNING_REQUIRED"] = "NO"
+        config.build_settings["EXPANDED_CODE_SIGN_IDENTITY"] = ""
+        config.build_settings.delete("PROVISIONING_PROFILE_SPECIFIER")
+        config.build_settings.delete("PROVISIONING_PROFILE")
+        config.build_settings.delete("CODE_SIGN_IDENTITY")
+      end
+    end
+    pods_project.save
+
+    { main: profile_name }
+  end
+
+  desc "Build iOS app for App Store (requires certificate lane secrets)"
+  lane :build do
+    profile_names = certificate
+    appstore_profile_name = profile_names[:main]
+    scheme = xcode_scheme
+    bundle_id = require_env("BUNDLE_IDENTIFIER")
+
+    build_app(
+      workspace: "#{scheme}.xcworkspace",
+      scheme: scheme,
+      export_method: "app-store",
+      configuration: "Release",
+      export_team_id: ENV["ASC_TEAM_ID"],
+      export_options: {
+        provisioningProfiles: {
+          bundle_id => appstore_profile_name
+        }
+      },
+      output_directory: "./build",
+      output_name: "app",
+      buildlog_path: "./build/logs",
+      clean: true,
+      xcargs: [
+        "DEVELOPMENT_TEAM=#{ENV['ASC_TEAM_ID']}",
+        "CODE_SIGN_STYLE=Manual"
+      ].join(" "),
+    )
+  end
+
+  desc "Optional: upload IPA to TestFlight. Requires ASC_API_KEY_* secrets."
+  lane :upload do
+    api_key = fetch_api_key
+    groups = testflight_groups
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: "./build/app.ipa",
+      groups: groups.empty? ? nil : groups,
+      changelog: groups.empty? ? nil : release_notes,
+      distribute_external: !groups.empty?,
+      skip_waiting_for_build_processing: groups.empty?
+    )
+  end
+
+  desc "Local release IPA (uses the signing already configured in the Xcode project / APPLE_TEAM_ID)"
+  lane :build_local do
+    scheme = xcode_scheme
+    team_id = ENV["APPLE_TEAM_ID"].to_s.strip
+    team_id = ENV["ASC_TEAM_ID"].to_s.strip if team_id.empty?
+
+    xcargs = []
+    xcargs << "DEVELOPMENT_TEAM=#{team_id}" unless team_id.empty?
+
+    build_app(
+      workspace: "#{scheme}.xcworkspace",
+      scheme: scheme,
+      export_method: ENV.fetch("IOS_EXPORT_METHOD", "development"),
+      configuration: "Release",
+      output_directory: "./build",
+      output_name: "app",
+      buildlog_path: "./build/logs",
+      clean: true,
+      xcargs: xcargs.join(" ")
+    )
+  end
+end

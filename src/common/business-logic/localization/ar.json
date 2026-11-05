@@ -21,12 +21,15 @@
   "settings.language.ar": "العربية",
   "example.list.title": "المنشورات",
   "example.list.empty": "لا توجد منشورات بعد",
+  "example.list.offline": "أنت غير متصل. يتم عرض المنشورات المخزنة عند توفرها.",
   "example.detail.title": "منشور",
   "example.detail.notFound": "المنشور غير موجود",
   "example.favorites.title": "المفضلة",
   "example.favorites.empty": "لا توجد عناصر مفضلة بعد",
   "example.favorites.add": "إضافة إلى المفضلة",
   "example.favorites.remove": "إزالة من المفضلة",
+  "example.favorites.addedToast": "تمت الإضافة إلى المفضلة",
+  "example.favorites.removedToast": "تمت الإزالة من المفضلة",
   "tabs.posts": "المنشورات",
   "tabs.settings": "الإعدادات",
   "debug.menu.title": "قائمة التصحيح",
@@ -37,5 +40,11 @@
   "debug.crash": "تشغيل تعطل",
   "boot.error.title": "فشل بدء التشغيل",
   "boot.error.message": "تعذر إكمال بدء التطبيق. [##p0]",
-  "boot.error.retry": "حاول مرة أخرى"
+  "boot.error.retry": "حاول مرة أخرى",
+  "alerts.network": "تعذر الوصول إلى الخادم. تحقق من اتصالك وحاول مرة أخرى.",
+  "alerts.server": "حدث خطأ من جانبنا. يرجى المحاولة مرة أخرى.",
+  "alerts.generic": "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+  "alerts.dismiss": "إغلاق",
+  "webview.error": "حدث خطأ أثناء تحميل هذه الصفحة.",
+  "datePicker.apply": "تطبيق"
 }

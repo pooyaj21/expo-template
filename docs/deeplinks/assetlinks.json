@@ -1,0 +1,28 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pj21.apptemplate",
+      "sha256_cert_fingerprints": ["AA:BB:CC:REPLACE_WITH_RELEASE_CERT_SHA256"]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pj21.apptemplate.develop",
+      "sha256_cert_fingerprints": [
+        "AA:BB:CC:REPLACE_WITH_DEBUG_OR_DEV_CERT_SHA256"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.pj21.apptemplate.stage",
+      "sha256_cert_fingerprints": ["AA:BB:CC:REPLACE_WITH_STAGE_CERT_SHA256"]
+    }
+  }
+]

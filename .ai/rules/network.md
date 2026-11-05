@@ -1,10 +1,15 @@
 ---
-description: "Feature data-access stack — service, queries, business-logic hook"
-globs: src/**/data-access/**/*.{ts,tsx},src/**/business-logic/use*.ts
+description: "Feature data-access stack — service, queries, business-logic hook, axios refresh slot, query managers"
+globs: src/**/data-access/**/*.{ts,tsx},src/**/business-logic/use*.ts,src/common/business-logic/session/**/*.{ts,tsx},src/common/business-logic/hooks/useOnlineManager.ts,src/common/business-logic/hooks/useAppStateFocus.ts,src/common/business-logic/hooks/useNetworkStatus.ts,src/common/business-logic/hooks/usePurgeStaleDefaultQueryScopes.ts
 alwaysApply: false
 paths:
   - "src/**/data-access/**/*.{ts,tsx}"
   - "src/**/business-logic/use*.ts"
+  - "src/common/business-logic/session/**/*.{ts,tsx}"
+  - "src/common/business-logic/hooks/useOnlineManager.ts"
+  - "src/common/business-logic/hooks/useAppStateFocus.ts"
+  - "src/common/business-logic/hooks/useNetworkStatus.ts"
+  - "src/common/business-logic/hooks/usePurgeStaleDefaultQueryScopes.ts"
 ---
 
 # Network / data-access Layer
@@ -15,6 +20,7 @@ Every remote feature is implemented as **three files** across data-access + busi
 
 - Payload / response interfaces. Fields stay **snake_case** exactly as the backend sends.
 - Reuse shared envelopes from `@/common/data-access/type/responseTypes` (`BaseResponseType`, `BaseListResponse`, `BasePaginationResponse`, `BasePayload`, `BasePaginationPayload`, `MutationOptions`). Do not redefine them.
+- Reuse generic entity DTOs from `@/common/data-access/type/*Types` (image, action, note box, …) — see `.ai/rules/entities.md`.
 - `T` in `BaseResponseType<T>` must not be an array — lists use `BaseListResponse` / `BasePaginationResponse`.
 
 ## 2. `src/features/<feature>/data-access/<feature>Service.ts` — raw axios
@@ -66,6 +72,50 @@ The ONLY layer presentation should consume for remote data:
 - Accepts `MutationOptions<T>` for mutations so callers can hook `onSuccess` / `onError`.
 - Errors: the axios interceptor already toasts via `apiResponseChannel` when `meta.message` is present — don't toast again. Don't swallow.
 
+## Kernel: query managers + headers + 401 refresh
+
+### Mount once from the root layout
+
+Call `setupQueryManagers()` from `src/common/data-access/api/setupQueryManagers.ts` **once** next to `QueryClientProvider` in `src/app/_layout.tsx` (module scope or the layout body). It wires:
+
+- NetInfo → React Query `onlineManager` (paused queries resume on reconnect)
+- AppState → React Query `focusManager` (foreground refetches **stale** queries; `refetchOnWindowFocus: true` on `queryClient`)
+
+Also mount `usePurgeStaleDefaultQueryScopes()` under `QueryClientProvider` so language / env scope changes drop only the **previous** scope's cache entries.
+
+Hooks `useOnlineManager` / `useAppStateFocus` exist if a subtree must ensure the bridges without the imperative setup; prefer `setupQueryManagers()`.
+
+UI connectivity banners use `useNetworkStatus()` → `{ isOnline }` (NetInfo; independent of the query bridge).
+
+### Request headers
+
+Feature slices register header providers with `registerRequestHeaderProvider` in `requestHeaders.ts` (from `CoreBootstrap` / slice bootstrap). The client never imports those slices.
+
+### Auth-ready 401 refresh (no auth feature in this template)
+
+`registerAuthRefreshHandler(handler)` in `src/common/data-access/api/authRefresh.ts`:
+
+- On **401**, if a handler is registered, axios runs it **single-flight**, then retries the queued request **once** (`_authRetry`).
+- If refresh fails or no handler is registered, publish to `apiErrorChannel` as before.
+- The handler must return `true` only after a new access token is stored; it must **not** re-enter the 401 path via `apiClient` (use a dedicated refresh call / fetch).
+
+A future **session** slice plugs in with `registerSessionAuth` from `src/common/business-logic/session/registerSessionAuth.ts`:
+
+```ts
+import { registerSessionAuth } from "@/common/business-logic/session/registerSessionAuth";
+
+// From session/auth bootstrap (not from common):
+registerSessionAuth({
+  getAccessToken: () => tokenStore.getAccessToken(),
+  refresh: async () => {
+    // refresh tokens without apiClient 401 loops; persist; return true/false
+    return true;
+  },
+});
+```
+
+That registers both the `Authorization: Bearer …` header provider and the refresh handler. Until a session slice exists, leave the handler unregistered — 401s only hit `apiErrorChannel`.
+
 ## Anti-patterns
 
 - Calling `apiClient` / `axios` in a presentation component or route file.
@@ -74,3 +124,4 @@ The ONLY layer presentation should consume for remote data:
 - Bypassing `useDefaultQueryKey`.
 - Re-implementing toast on success/error that the interceptor already surfaces.
 - Presentation importing anything from `data-access` except `*Types.ts`.
+- Importing an auth/session feature from `common/data-access` — use the registries above.

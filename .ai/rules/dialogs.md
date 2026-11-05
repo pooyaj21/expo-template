@@ -44,9 +44,16 @@ Any text input inside a bottom sheet **MUST** use the bottom-sheet-aware input p
 
 ```tsx
 const dialogs = useDialogManager();
-dialogs.foo.present({ onConfirm: handleConfirm });
-dialogs.foo.dismiss();
+dialogs.confirm.present({ message: "...", onConfirm: handleConfirm });
+dialogs.date.present({
+  title: "...",
+  selectedDate: "2026-01-15",
+  onApply: (iso) => {},
+});
+dialogs.date.dismiss();
 ```
+
+Shared date picker: `AppDateBottomSheetDialog` — localized month/day names (en/ar), RTL-aware chevrons, ISO `YYYY-MM-DD` apply value. Registered as `dialogs.date`.
 
 Never import the shared dialog component into a screen.
 

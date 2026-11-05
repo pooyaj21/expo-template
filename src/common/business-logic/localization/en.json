@@ -21,12 +21,15 @@
   "settings.language.ar": "Arabic",
   "example.list.title": "Posts",
   "example.list.empty": "No posts yet",
+  "example.list.offline": "You are offline. Showing cached posts when available.",
   "example.detail.title": "Post",
   "example.detail.notFound": "Post not found",
   "example.favorites.title": "Favorites",
   "example.favorites.empty": "No favorites yet",
   "example.favorites.add": "Add to favorites",
   "example.favorites.remove": "Remove from favorites",
+  "example.favorites.addedToast": "Added to favorites",
+  "example.favorites.removedToast": "Removed from favorites",
   "tabs.posts": "Posts",
   "tabs.settings": "Settings",
   "debug.menu.title": "Debug menu",
@@ -37,5 +40,11 @@
   "debug.crash": "Trigger crash",
   "boot.error.title": "Startup failed",
   "boot.error.message": "We could not finish starting the app. [##p0]",
-  "boot.error.retry": "Try again"
+  "boot.error.retry": "Try again",
+  "alerts.network": "Unable to reach the server. Check your connection and try again.",
+  "alerts.server": "Something went wrong on our end. Please try again.",
+  "alerts.generic": "Something went wrong. Please try again.",
+  "alerts.dismiss": "Dismiss",
+  "webview.error": "An error occurred while loading this page.",
+  "datePicker.apply": "Apply"
 }

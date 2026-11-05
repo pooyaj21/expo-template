@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import {
   ColorValue,
   StyleSheet,
@@ -10,17 +10,13 @@ import { Toaster, toast } from "sonner-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAppSafeAreaInsets } from "@/common/business-logic/hooks/useAppSafeAreaInsets";
 import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
-import {
-  useApiResponseToasts,
-  type ApiResponseToast,
-} from "@/common/business-logic/hooks/useApiResponseToasts";
 
 const TOAST_TOP_GAP = 8;
 const DEFAULT_TOP_OFFSET = 40;
 const TOAST_WIDTH_RATIO = 0.9;
 const VISIBLE_TOASTS = 3;
 const STACK_GAP = 8;
-const TOAST_DURATION = 4000;
+const DEFAULT_TOAST_DURATION = 4000;
 
 export enum ToastTypeEnums {
   SUCCESS = "success",
@@ -69,7 +65,7 @@ const TOAST_THEME: Record<ToastTypeEnums, ToastTheme> = {
 };
 
 const toToastType = (
-  type?: ToastTypeEnums | ApiResponseToast["type"] | null,
+  type?: ToastTypeEnums | "success" | "error" | "warning" | "info" | null,
 ): ToastTypeEnums => {
   switch (type) {
     case ToastTypeEnums.ERROR:
@@ -121,55 +117,89 @@ const AppToastView = ({
 let toastQueue: (string | number)[] = [];
 let frontDismissTimer: ReturnType<typeof setTimeout> | undefined;
 
-const scheduleFrontDismiss = () => {
+const scheduleFrontDismiss = (durationMs: number) => {
   if (frontDismissTimer) {
     clearTimeout(frontDismissTimer);
     frontDismissTimer = undefined;
   }
   const front = toastQueue[toastQueue.length - 1];
   if (front === undefined) return;
+  if (!Number.isFinite(durationMs) || durationMs <= 0) return;
+
   frontDismissTimer = setTimeout(() => {
     frontDismissTimer = undefined;
     toastQueue = toastQueue.filter((queued) => queued !== front);
     toast.dismiss(front);
-    scheduleFrontDismiss();
-  }, TOAST_DURATION);
+    scheduleFrontDismiss(DEFAULT_TOAST_DURATION);
+  }, durationMs);
 };
 
 const releaseToast = (id: string | number) => {
   if (!toastQueue.includes(id)) return;
   toastQueue = toastQueue.filter((queued) => queued !== id);
-  scheduleFrontDismiss();
+  scheduleFrontDismiss(DEFAULT_TOAST_DURATION);
 };
 
+export type ShowAppToastInput = {
+  type?: ToastTypeEnums | "success" | "error" | "warning" | "info" | null;
+  message: string;
+  /** Auto-dismiss ms; `null` pins until dismissed. Defaults to 4s. */
+  duration?: number | null;
+  /** Stable id so the alerts queue can correlate dismissals. */
+  toastId?: string;
+  onDismiss?: () => void;
+};
+
+/**
+ * Imperative toast presenter used by the alerts core slice.
+ * Prefer `useAlerts().show(...)` from feature code — this is the sonner sink.
+ */
 export const showAppToast = ({
   type,
   message,
-}: {
-  type?: ToastTypeEnums | ApiResponseToast["type"] | null;
-  message: string;
-}) => {
+  duration = DEFAULT_TOAST_DURATION,
+  toastId,
+  onDismiss,
+}: ShowAppToastInput) => {
   if (!message.trim()) return;
+
   const id = toast.custom(
     <AppToastView type={toToastType(type)} message={message} />,
-    { duration: Infinity, onDismiss: releaseToast },
+    {
+      id: toastId,
+      duration: Infinity,
+      onDismiss: (dismissedId) => {
+        releaseToast(dismissedId);
+        onDismiss?.();
+      },
+    },
   );
+
+  toastQueue = toastQueue.filter((queued) => queued !== id);
   toastQueue.push(id);
   while (toastQueue.length > VISIBLE_TOASTS) {
     const overflowed = toastQueue.shift();
     if (overflowed !== undefined) toast.dismiss(overflowed);
   }
-  scheduleFrontDismiss();
+
+  if (duration === null) {
+    if (frontDismissTimer) {
+      clearTimeout(frontDismissTimer);
+      frontDismissTimer = undefined;
+    }
+    return id;
+  }
+
+  scheduleFrontDismiss(duration ?? DEFAULT_TOAST_DURATION);
+  return id;
 };
 
+/**
+ * Sonner host only. API/meta toasts are owned by `features/core/alerts`
+ * (`AlertProvider` → `showAppToast`) so this surface never double-fires.
+ */
 export const AppToast = () => {
   const insets = useAppSafeAreaInsets();
-
-  const presentToast = useCallback((payload: ApiResponseToast) => {
-    showAppToast({ type: payload.type, message: payload.message });
-  }, []);
-
-  useApiResponseToasts(presentToast);
 
   return (
     <Toaster

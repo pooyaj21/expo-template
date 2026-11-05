@@ -7,10 +7,7 @@ import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
 import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
 import { useFeatureFlag } from "@/features/core/feature-flags/business-logic/useFeatureFlag";
 import { useExampleDetail } from "@/features/example/business-logic/useExampleDetail";
-import {
-  useIsExampleFavorite,
-  useToggleExampleFavorite,
-} from "@/features/example/business-logic/store/exampleFavoritesSelectors";
+import { useExampleFavoriteToggle } from "@/features/example/business-logic/useExampleFavoriteToggle";
 import { AppPressable } from "@/common/presentation/components/AppPressable";
 
 type ExampleDetailPageProps = {
@@ -23,10 +20,9 @@ export const ExampleDetailPage = ({ id }: ExampleDetailPageProps) => {
   const { post, isLoading, error, refetch } = useExampleDetail(id);
   const favoritesEnabled = useFeatureFlag("EXAMPLE_FAVORITES");
   const numericId = Number(id);
-  const isFavorite = useIsExampleFavorite(
+  const { isFavorite, toggle } = useExampleFavoriteToggle(
     Number.isFinite(numericId) ? numericId : -1,
   );
-  const toggleFavorite = useToggleExampleFavorite();
 
   return (
     <PageContainer>
@@ -56,7 +52,7 @@ export const ExampleDetailPage = ({ id }: ExampleDetailPageProps) => {
               {favoritesEnabled ? (
                 <AppPressable
                   testID="example-detail-favorite"
-                  onPress={() => toggleFavorite(item.id)}
+                  onPress={toggle}
                   style={[
                     styles.favorite,
                     { borderColor: colors.border.default },

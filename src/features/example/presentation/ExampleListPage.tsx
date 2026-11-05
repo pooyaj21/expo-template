@@ -1,12 +1,15 @@
 import { StyleSheet, View } from "react-native";
 import { AppList } from "@/common/presentation/components/AppList";
+import { AppNoteBanner } from "@/common/presentation/components/AppNoteBanner";
 import { AppRefreshControl } from "@/common/presentation/components/AppRefreshControl";
 import { AppText } from "@/common/presentation/components/AppText";
 import { PageContainer } from "@/common/presentation/components/PageContainer";
 import { Skeleton } from "@/common/presentation/components/Skeleton";
 import { StateHandler } from "@/common/presentation/components/StateHandler";
 import { TestIdEnums } from "@/common/business-logic/utils/testIds";
+import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
 import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
+import { useNetworkStatus } from "@/common/business-logic/hooks/useNetworkStatus";
 import { useExampleList } from "@/features/example/business-logic/useExampleList";
 import { ExampleCard } from "@/features/example/presentation/components/ExampleCard";
 import type { ExamplePost } from "@/features/example/business-logic/exampleModels";
@@ -21,6 +24,8 @@ const ListSkeleton = () => (
 
 export const ExampleListPage = () => {
   const { getString } = useLocalization();
+  const { colors } = useAppTheme();
+  const { isOnline } = useNetworkStatus();
   const { list, isLoading, isRefreshing, isEmpty, error, refetch } =
     useExampleList();
 
@@ -30,6 +35,17 @@ export const ExampleListPage = () => {
         <AppText weight="semiBold" size={22} style={styles.title}>
           {getString("example.list.title")}
         </AppText>
+        {!isOnline ? (
+          <AppNoteBanner
+            style={styles.offlineBanner}
+            info={{
+              message: getString("example.list.offline"),
+              color: colors.warning.content,
+              background_color: colors.warning.light,
+              border_color: colors.warning.main,
+            }}
+          />
+        ) : null}
         <StateHandler
           data={list}
           error={error}
@@ -78,6 +94,9 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   title: {
+    marginBottom: 12,
+  },
+  offlineBanner: {
     marginBottom: 12,
   },
   listContent: {

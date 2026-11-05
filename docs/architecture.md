@@ -6,7 +6,7 @@ Vertical Layered Feature Architecture adapted for Expo Router. Boundaries are al
 
 - **Vertical slices**: each feature under `src/features/<feature>/` with `presentation` / `business-logic` / `data-access` as needed.
 - **Common kernel**: shared atoms under `src/common/` in the same three layers.
-- **Shared slices**: cohesive multi-feature concerns under `src/features/core/<name>/` (environment, app-boot, device, feature-flags, navigation, dialogs, debug, error-pages — same `presentation` / `business-logic` / `data-access` rules as feature slices). Localization and theme context/hooks live in `common`; core keeps only feature-specific orchestration when needed.
+- **Shared slices**: cohesive multi-feature concerns under `src/features/core/<name>/` (environment, app-boot, device, feature-flags, navigation, dialogs, alerts, first-run, app-settings, debug, error-pages — same `presentation` / `business-logic` / `data-access` rules as feature slices). Localization and theme context/hooks live in `common`; core keeps only feature-specific orchestration when needed.
 - **Thin routes**: `src/app/` only composes feature presentation — no `components/` trees there.
 - **Kernel never imports a feature slice** (except Zustand composition in `app-state.ts`). It announces on channels or asks registries; slices subscribe/register via `CoreBootstrap.ts`.
 
@@ -36,10 +36,14 @@ Scaffold: `npm run feature -- <name>`.
 
 - `createAxiosInstance` / `apiClient` / `setApiBaseUrl` — `common/data-access/api/axios.ts`
 - `registerRequestHeaderProvider` / `resolveRequestHeaders` — `requestHeaders.ts`
-- `apiErrorChannel` / `apiResponseChannel` — pub/sub for errors and toasts (`useApiResponseToasts` bridges responses into presentation)
+- `registerAuthRefreshHandler` / `registerSessionAuth` — 401 single-flight refresh slot + session plug-in (`authRefresh.ts`, `business-logic/session/`)
+- `setupQueryManagers` — NetInfo → `onlineManager`, AppState → `focusManager` (call once from `src/app/_layout.tsx`)
+- `usePurgeStaleDefaultQueryScopes` — drop previous language/env query-scope cache (mount under `QueryClientProvider`)
+- `apiErrorChannel` / `apiResponseChannel` — pub/sub for failures / typed envelopes; `features/core/alerts` subscribes and renders via `AppToast`
 - `queryClient` / `queryUtils` — TanStack defaults + infinite list mappers
-- `responseTypes` — `BaseResponseType`, list/pagination envelopes, `InfiniteListPagination`, `MutationOptions`
+- `responseTypes` + entity `*Types` — envelopes and shared Image / Action / NoteBox / DeviceOs DTOs
 - `useLocalization` / `useAppTheme` — canonical context hooks in `common/business-logic/hooks/`
+- `useNetworkStatus` — live connectivity for UI banners (see example list page)
 - `StorageInterface` — `appStorage` / `secureStorage`
 - `useAppStore` — Zustand persist composition root
 - `routes` — central path helpers
@@ -55,7 +59,9 @@ Scaffold: `npm run feature -- <name>`.
 
 ## Providers
 
-ErrorBoundary → Environment → Localization → Theme → QueryClient → GestureHandlerRootView → BottomSheetModal → DialogManager → AppBoot → Stack / Toast / DebugMenuHost.
+ErrorBoundary → Environment → Localization → Theme → QueryClient (+ `setupQueryManagers` / `QueryLifecycle` purge hook) → GestureHandlerRootView → BottomSheetModal → DialogManager → AlertProvider → AppBoot → Stack / AppToast / FirstRunHost (DebugMenuHost wraps inside AppBoot).
+
+`CoreBootstrap` (imported at the top of `_layout`) registers device headers, the soft feature-flags boot step, and the soft app-settings boot step.
 
 ## Navigation
 
