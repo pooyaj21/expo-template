@@ -105,6 +105,8 @@ export default ({ config }) => {
         buildNumber,
         icon: `${id.iconDir}/icon.png`,
         infoPlist: {
+          // Hide expo-dev-menu's floating button; open the dev menu by shake or Cmd+D.
+          EXDevMenuShowFloatingActionButton: false,
           CFBundleURLTypes: [
             {
               CFBundleURLSchemes: [id.scheme],
