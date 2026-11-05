@@ -15,6 +15,7 @@ import { AppThemeProvider } from "@/common/presentation/providers/AppThemeProvid
 import { DialogManagerProvider } from "@/features/core/dialogs/presentation/DialogManagerProvider";
 import { AppBootProvider } from "@/features/core/app-boot/presentation/AppBootProvider";
 import { useFeatureFlag } from "@/features/core/feature-flags/business-logic/useFeatureFlag";
+import { useOrientationPolicy } from "@/common/business-logic/hooks/useOrientationPolicy";
 
 const RootNavigator = () => {
   const detailEnabled = useFeatureFlag("EXAMPLE_DETAIL");
@@ -35,6 +36,8 @@ const RootNavigator = () => {
 };
 
 const RootLayout = () => {
+  useOrientationPolicy();
+
   return (
     <AppErrorBoundary useCrashFallback>
       <EnvironmentProvider>

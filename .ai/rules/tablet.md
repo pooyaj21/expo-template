@@ -1,12 +1,17 @@
 ---
 description: "Tablet / large-screen layout — every page is built for phone AND tablet"
-globs: src/features/**/presentation/**/*.{ts,tsx},src/common/presentation/**/*.{ts,tsx},src/common/presentation/token/dimensions.ts,src/common/business-logic/hooks/useDimensions.ts
+globs: src/features/**/presentation/**/*.{ts,tsx},src/common/presentation/**/*.{ts,tsx},src/common/presentation/token/dimensions.ts,src/common/business-logic/hooks/useDimensions.ts,src/common/business-logic/hooks/useContentGrid.ts,src/common/business-logic/hooks/useColumnSidePadding.ts,src/common/business-logic/hooks/useDetailPageLayout.ts,src/common/business-logic/hooks/useOrientationPolicy.ts,src/common/business-logic/utils/contentLayout.ts
 alwaysApply: false
 paths:
   - "src/features/**/presentation/**/*.{ts,tsx}"
   - "src/common/presentation/**/*.{ts,tsx}"
   - "src/common/presentation/token/dimensions.ts"
   - "src/common/business-logic/hooks/useDimensions.ts"
+  - "src/common/business-logic/hooks/useContentGrid.ts"
+  - "src/common/business-logic/hooks/useColumnSidePadding.ts"
+  - "src/common/business-logic/hooks/useDetailPageLayout.ts"
+  - "src/common/business-logic/hooks/useOrientationPolicy.ts"
+  - "src/common/business-logic/utils/contentLayout.ts"
 ---
 
 # Tablet & large screens
@@ -24,20 +29,32 @@ const { width, height, isTablet } = useDimensions();
 - Branch on `isTablet` at render time only. It is reactive to rotation / split screen.
 - ❌ Never: `Dimensions.get(...)` in a screen, a raw `useWindowDimensions().width > N` check, a new ad-hoc breakpoint constant, or `Platform.isPad`.
 
+## Layout helpers (prefer these over hand-rolled math)
+
+| Helper                                           | Path                                                  | Use when                                                                  |
+| ------------------------------------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| `useContentGrid(cellWidth, sideMargin, spacing)` | `common/business-logic/hooks/useContentGrid.ts`       | Grids / lists — returns `{ sidePadding, numColumns }`                     |
+| `useColumnSidePadding(columnMaxWidth?)`          | `common/business-logic/hooks/useColumnSidePadding.ts` | Single-column forms / settings — centers a max-width column               |
+| `useDetailPageLayout(phoneSideMargin, kind?)`    | `common/business-logic/hooks/useDetailPageLayout.ts`  | Media + info detail pages — side padding, content width, column/rail gaps |
+| `getContentWidth` / `getContentSidePadding`      | `common/business-logic/utils/contentLayout.ts`        | Pure helpers when you already have `width` / `isTablet`                   |
+| `useOrientationPolicy()`                         | `common/business-logic/hooks/useOrientationPolicy.ts` | Root once — lock phone to portrait, unlock tablets                        |
+
+`DetailPageLayoutKindEnums.DEFAULT` uses the standard column gap; `.WIDE` uses the wider gap. Tokens live in `contentLayoutMetrics` (`common/business-logic/constants/layout.ts`) and are mirrored by `dimensions.layout` in `common/presentation/token/dimensions.ts`.
+
 ## Patterns
 
-| Page shape                      | Approach                                                                |
-| ------------------------------- | ----------------------------------------------------------------------- |
-| Form / settings / single column | Center a max-width column with horizontal padding from dimension tokens |
-| Full-width content / lists      | Cap content width and center; compute `numColumns` from width           |
-| Detail with media + info        | Two-column row on tablet, stacked on phone                              |
-| Bottom sheet                    | Cap sheet width on tablet; grids inside use the sheet width             |
+| Page shape                      | Approach                                                                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------- |
+| Form / settings / single column | `useColumnSidePadding()` for horizontal padding                                              |
+| Full-width content / lists      | `useContentGrid(...)` for side padding + `numColumns`                                        |
+| Detail with media + info        | `useDetailPageLayout(...)` — two-column row on tablet, stacked on phone                      |
+| Bottom sheet                    | Cap sheet width via `useSheetWidth` / `useSheetDimensions`; grids inside use the sheet width |
 
-Tokens live in `src/common/presentation/token/dimensions.ts` (and related helpers under `common/business-logic`). Feature-specific tablet sizes belong next to the feature — no magic numbers for tablet column widths in the page file.
+Feature-specific tablet sizes belong next to the feature — no magic numbers for tablet column widths in the page file.
 
 ## Rules for every page
 
-1. **No fixed column counts.** Compute `numColumns` from width / helpers.
+1. **No fixed column counts.** Compute `numColumns` from width / `useContentGrid`.
 2. **No content edge-to-edge on tablet** except full-bleed media.
 3. **Two columns use logical layout** (`flexDirection: "row"`, `marginStart/End`, `gap`).
 4. **Skeletons match the tablet layout.**

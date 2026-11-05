@@ -7,6 +7,7 @@
   "common.loading": "جارٍ التحميل…",
   "common.empty": "لا يوجد محتوى بعد",
   "common.seeAll": "عرض الكل",
+  "common.attention.title": "تنبيه",
   "common.notFound.title": "الصفحة غير موجودة",
   "common.notFound.message": "هذه الشاشة غير موجودة أو لم تعد متاحة.",
   "common.notFound.home": "العودة للرئيسية",

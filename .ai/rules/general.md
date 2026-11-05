@@ -17,8 +17,8 @@ src/
     business-logic/            # hooks, utils, routes/paths.ts, store/app-state.ts, observability/
     data-access/               # api/ (axios, queryClient, channels), type/responseTypes.ts
   features/
-    core/<slice>/              # shared slices: environment, localization, theme, app-boot,
-                               # device, feature-flags, dialogs, debug, error-pages
+    core/<slice>/              # shared slices: environment, app-boot, device,
+                               # feature-flags, navigation, dialogs, debug, error-pages
     CoreBootstrap.ts           # side-effect imports that register core slices
     <feature>/{presentation,business-logic,data-access}/
 assets/                        # fonts, animation, images
@@ -39,6 +39,7 @@ Folder-scoped rules load automatically when you work in that folder:
 - [`.ai/rules/dialogs.md`](dialogs.md) — bottom-sheet dialogs (`features/core/dialogs`)
 - [`.ai/rules/tablet.md`](tablet.md) — tablet / large-screen layout
 - [`.ai/rules/architecture.md`](architecture.md) — VLFA boundaries (read with any layer edit)
+- [`.ai/rules/deeplinks.md`](deeplinks.md) — scheme / universal links → `useAppRouter`
 
 Always-on companion: [`.ai/rules/localization.md`](localization.md) — i18n / RTL (every user-facing string).
 

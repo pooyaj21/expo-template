@@ -1,11 +1,10 @@
 import { StyleSheet, View } from "react-native";
-import { router } from "expo-router";
 import { AppPressable } from "@/common/presentation/components/AppPressable";
 import { AppText } from "@/common/presentation/components/AppText";
 import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
 import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
-import { routes } from "@/common/business-logic/routes/paths";
 import { useFeatureFlag } from "@/features/core/feature-flags/business-logic/useFeatureFlag";
+import { useAppRouter } from "@/features/core/navigation/business-logic/useAppRouter";
 import type { ExamplePost } from "@/features/example/business-logic/exampleModels";
 import {
   useIsExampleFavorite,
@@ -20,14 +19,14 @@ type ExampleCardProps = {
 export const ExampleCard = ({ post, testID }: ExampleCardProps) => {
   const { colors } = useAppTheme();
   const { getString } = useLocalization();
+  const { navigateTo } = useAppRouter();
   const detailEnabled = useFeatureFlag("EXAMPLE_DETAIL");
   const favoritesEnabled = useFeatureFlag("EXAMPLE_FAVORITES");
   const isFavorite = useIsExampleFavorite(post.id);
   const toggleFavorite = useToggleExampleFavorite();
 
   const openDetail = () => {
-    if (!detailEnabled) return;
-    router.push(routes.exampleDetail(post.id));
+    navigateTo.exampleDetail({ id: post.id });
   };
 
   return (

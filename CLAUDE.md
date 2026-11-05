@@ -24,7 +24,7 @@ npm run build:develop   # local release lanes via scripts/build-local.sh
 
 - `src/features/<feature>/{presentation,business-logic,data-access}/` — feature slices
 - `src/common/{presentation,business-logic,data-access}/` — shared **atoms** (includes `useLocalization` / `useAppTheme` hooks + Localization/Theme providers)
-- `src/features/core/<name>/` — shared **slices** (environment, app-boot, device, feature-flags, dialogs, debug, error-pages); same three layers as normal features
+- `src/features/core/<name>/` — shared **slices** (environment, app-boot, device, feature-flags, navigation, dialogs, debug, error-pages); same three layers as normal features
 - `src/app/` — Expo Router only (thin shells)
 - `src/features/CoreBootstrap.ts` — side-effect registrations for core slices
 
@@ -58,6 +58,7 @@ Full write-up: **`docs/architecture.md`**. New feature recipe: **`docs/adding-fe
 | API client             | `src/common/data-access/api/`                                          |
 | Response envelopes     | `src/common/data-access/type/responseTypes.ts`                         |
 | Routes map             | `src/common/business-logic/routes/paths.ts`                            |
+| Typed navigation       | `src/features/core/navigation/business-logic/useAppRouter.ts`          |
 | App store composer     | `src/common/business-logic/store/app-state.ts`                         |
 | Storage                | `src/common/business-logic/interfaces/storageInterface.ts`             |
 | Shared UI              | `src/common/presentation/components/`                                  |

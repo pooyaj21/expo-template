@@ -1,9 +1,9 @@
-import { ReactNode } from "react";
-import { StyleProp, View, ViewStyle } from "react-native";
-import { StatusBar } from "expo-status-bar";
-import type { StatusBarStyle } from "expo-status-bar";
+import type { ReactNode } from "react";
+import { View, type StyleProp, type ViewStyle } from "react-native";
+import { StatusBar, type StatusBarStyle } from "expo-status-bar";
 import { useAppSafeAreaInsets } from "@/common/business-logic/hooks/useAppSafeAreaInsets";
 import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
+import { PageBlurProvider } from "@/common/presentation/providers/PageBlurProvider";
 
 export type PageContainerProps = {
   children: ReactNode;
@@ -11,6 +11,11 @@ export type PageContainerProps = {
   statusBarStyle?: StatusBarStyle;
   style?: StyleProp<ViewStyle>;
   testID?: string;
+  /**
+   * Opt into the toolbar blur portal. Mount only on screens that render
+   * `AppToolbarBlur` and let content scroll under the frosted bar.
+   */
+  blurToolbar?: boolean;
 };
 
 export const PageContainer = (props: PageContainerProps) => {
@@ -24,6 +29,12 @@ export const PageContainer = (props: PageContainerProps) => {
     if (caringSides !== "bottom") paddingTop = insets.top;
     if (caringSides !== "top") paddingBottom = insets.bottom;
   }
+
+  const content = props.blurToolbar ? (
+    <PageBlurProvider>{props.children}</PageBlurProvider>
+  ) : (
+    props.children
+  );
 
   return (
     <View
@@ -39,7 +50,7 @@ export const PageContainer = (props: PageContainerProps) => {
       ]}
     >
       <StatusBar style={props.statusBarStyle ?? (isDark ? "light" : "dark")} />
-      {props.children}
+      {content}
     </View>
   );
 };

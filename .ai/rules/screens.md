@@ -93,7 +93,12 @@ Rules:
 
 ## Navigation
 
-Build every internal URL through `routes` in `src/common/business-logic/routes/paths.ts`. Prefer Expo Router helpers (`router.push(routes.exampleDetail(id))`) wrapped in a small feature/common navigation hook when one exists — never scatter raw path strings.
+All in-app navigation goes through `useAppRouter` (`src/features/core/navigation/business-logic/useAppRouter.ts`) — `navigateTo.*`, `back`, `dismiss`, `replace`, `reset`. Path strings are built only inside that catalog (and `routes` in `src/common/business-logic/routes/paths.ts`). Do **not** call `router.push` / `router.replace` from feature screens with raw or ad-hoc paths.
+
+- Add a `routes` helper, then a `navigateTo` destination, before introducing a new screen entry point.
+- Gate flagged destinations with `featureGate` on the catalog entry (call-time no-op when off) — never `return null` after mounting the page.
+- Cross-screen function results ride tokens via `navCallbacks` (`putCallback` / `getCallback` / `releaseCallback`), not JSON params.
+- Inbound URLs: see [`.ai/rules/deeplinks.md`](deeplinks.md) — parse once in `+native-intent.tsx`, then map to `navigateTo`.
 
 ## Dialogs from screens
 

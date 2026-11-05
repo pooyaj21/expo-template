@@ -7,6 +7,7 @@
   "common.loading": "Loading…",
   "common.empty": "Nothing here yet",
   "common.seeAll": "See all",
+  "common.attention.title": "Attention",
   "common.notFound.title": "Page not found",
   "common.notFound.message": "This screen does not exist or is no longer available.",
   "common.notFound.home": "Go home",

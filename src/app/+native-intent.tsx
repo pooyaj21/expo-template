@@ -1,5 +1,6 @@
 /**
- * Expo Router native intent hook. Returning null keeps the system path
- * handling default — add deep-link remaps here when a product needs them.
+ * Single deep-link parse point (see `.ai/rules/deeplinks.md`).
+ * Normalize / remap inbound system paths here, then land on routes that
+ * `useAppRouter` already catalogs. Returning null keeps Expo Router defaults.
  */
 export const redirectSystemPath = () => null;

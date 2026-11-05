@@ -1,16 +1,25 @@
-export const TABLET_MIN_WIDTH = 600;
-export const TABLET_MIN_ASPECT_RATIO = 0.8;
+import {
+  BOTTOM_SHEET_TABLET_MAX_WIDTH,
+  contentLayoutMetrics,
+  TABLET_MIN_ASPECT_RATIO as TABLET_MIN_ASPECT_RATIO_VALUE,
+  TABLET_MIN_WIDTH as TABLET_MIN_WIDTH_VALUE,
+} from "@/common/business-logic/constants/layout";
+
+export const TABLET_MIN_WIDTH = TABLET_MIN_WIDTH_VALUE;
+export const TABLET_MIN_ASPECT_RATIO = TABLET_MIN_ASPECT_RATIO_VALUE;
 
 export const dimensions = {
   layout: {
-    contentMaxWidth: 1240,
-    tabletSideMargin: 24,
-    columnMaxWidth: 640,
-    columnSideMargin: 20,
+    contentMaxWidth: contentLayoutMetrics.contentMaxWidth,
+    tabletSideMargin: contentLayoutMetrics.tabletSideMargin,
+    columnMaxWidth: contentLayoutMetrics.columnMaxWidth,
+    columnSideMargin: contentLayoutMetrics.columnSideMargin,
+    railGap: contentLayoutMetrics.railGap,
+    phoneRailGap: contentLayoutMetrics.phoneRailGap,
   },
   bottomSheet: {
     tablet: {
-      maxWidth: 560,
+      maxWidth: BOTTOM_SHEET_TABLET_MAX_WIDTH,
     },
   },
   list: {

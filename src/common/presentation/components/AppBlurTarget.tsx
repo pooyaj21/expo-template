@@ -1,16 +1,24 @@
-import { forwardRef, ReactNode } from "react";
-import { View, ViewProps } from "react-native";
+import type { ReactNode } from "react";
+import type { StyleProp, ViewStyle } from "react-native";
+import { BlurTargetView } from "expo-blur";
+import { useBlurTargetContext } from "@/common/business-logic/hooks/useBlurTargetContext";
 
-type AppBlurTargetProps = ViewProps & {
-  children?: ReactNode;
+type AppBlurTargetProps = {
+  targetKey: string;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
 };
 
-export const AppBlurTarget = forwardRef<View, AppBlurTargetProps>(
-  function AppBlurTarget({ children, ...rest }, ref) {
-    return (
-      <View ref={ref} collapsable={false} {...rest}>
-        {children}
-      </View>
-    );
-  },
-);
+export const AppBlurTarget = ({
+  targetKey,
+  children,
+  style,
+}: AppBlurTargetProps) => {
+  const { getTarget } = useBlurTargetContext();
+
+  return (
+    <BlurTargetView ref={getTarget(targetKey)} style={style}>
+      {children}
+    </BlurTargetView>
+  );
+};

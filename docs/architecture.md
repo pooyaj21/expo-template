@@ -6,7 +6,7 @@ Vertical Layered Feature Architecture adapted for Expo Router. Boundaries are al
 
 - **Vertical slices**: each feature under `src/features/<feature>/` with `presentation` / `business-logic` / `data-access` as needed.
 - **Common kernel**: shared atoms under `src/common/` in the same three layers.
-- **Shared slices**: cohesive multi-feature concerns under `src/features/core/<name>/` (same `presentation` / `business-logic` / `data-access` rules as feature slices). Localization and theme context/hooks live in `common`; core keeps only feature-specific orchestration when needed.
+- **Shared slices**: cohesive multi-feature concerns under `src/features/core/<name>/` (environment, app-boot, device, feature-flags, navigation, dialogs, debug, error-pages — same `presentation` / `business-logic` / `data-access` rules as feature slices). Localization and theme context/hooks live in `common`; core keeps only feature-specific orchestration when needed.
 - **Thin routes**: `src/app/` only composes feature presentation — no `components/` trees there.
 - **Kernel never imports a feature slice** (except Zustand composition in `app-state.ts`). It announces on channels or asks registries; slices subscribe/register via `CoreBootstrap.ts`.
 
@@ -56,6 +56,15 @@ Scaffold: `npm run feature -- <name>`.
 ## Providers
 
 ErrorBoundary → Environment → Localization → Theme → QueryClient → GestureHandlerRootView → BottomSheetModal → DialogManager → AppBoot → Stack / Toast / DebugMenuHost.
+
+## Navigation
+
+- Path helpers live in `src/common/business-logic/routes/paths.ts` (`routes.home`, `routes.exampleDetail`, …).
+- In-app navigation goes through the core slice `src/features/core/navigation/`:
+  - `useAppRouter` — typed `navigateTo` catalog (home, exampleDetail, notFound), `push` / `replace` / `back` / `dismiss` / `reset`, double-push guard, per-destination `featureGate` via `useFeatureFlagManager` (call-time no-op when the flag is off).
+  - `navCallbacks` — stash/retrieve function tokens when a screen must pass a callback through route params.
+- Feature screens must not call Expo Router with ad-hoc path strings; add a catalog entry instead.
+- Deep links: custom scheme + optional universal/app links are declared in `app.config.js`; parse once in `src/app/+native-intent.tsx` (`redirectSystemPath`) and map to `navigateTo` destinations. See `.ai/rules/deeplinks.md` and `.ai/rules/screens.md`.
 
 ## Out of scope for this template
 
