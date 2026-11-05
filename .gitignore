@@ -31,7 +31,6 @@ yarn-error.*
 *.pem
 
 # local env
-.env
 .env.local
 
 # typescript
@@ -46,3 +45,6 @@ build-logs/
 
 # graphify
 graphify-out/
+
+# git-crypt keys (never commit)
+*.key

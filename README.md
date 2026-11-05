@@ -7,9 +7,15 @@ Personal Expo (SDK 55) starter with VLFA architecture: vertical feature slices s
 ```bash
 nvm use              # Node 24 — see .nvmrc
 npm ci
-cp .env.example .env
+git-crypt unlock ~/.config/git-crypt/expo-template.key   # decrypts .env
 npm run ios          # or: npm run android
 ```
+
+`.env` **is committed, encrypted with [`git-crypt`](https://github.com/AGWA/git-crypt)** (`brew install git-crypt`; `.gitattributes` marks it `filter=git-crypt diff=git-crypt`). After unlocking it reads and edits like a normal file; committing re-encrypts it automatically. Without the key, `.env` is binary and `app.config.js` throws `X is not set`.
+
+The key is **not** in the repo (this repo is public — a key branch would let anyone decrypt). Keep `~/.config/git-crypt/expo-template.key` in a password manager.
+
+**Starting a new project from this template:** run `git-crypt init` in the new repo to get its own key, then `git-crypt export-key <path>` and fill `.env` from `.env.example`. Never reuse this template's key.
 
 Requires a dev client (native modules). Expo Go is not the target.
 
