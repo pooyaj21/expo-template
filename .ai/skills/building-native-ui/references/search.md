@@ -171,7 +171,7 @@ function SearchScreen() {
 When using NativeTabs with a search role, the search bar integrates with the tab bar:
 
 ```tsx
-// src/app/_layout.tsx
+// app/_layout.tsx
 <NativeTabs>
   <NativeTabs.Trigger name="(home)">
     <Label>Home</Label>
@@ -184,7 +184,7 @@ When using NativeTabs with a search role, the search bar integrates with the tab
 ```
 
 ```tsx
-// src/app/(search)/_layout.tsx
+// app/(search)/_layout.tsx
 <Stack>
   <Stack.Screen
     name="index"

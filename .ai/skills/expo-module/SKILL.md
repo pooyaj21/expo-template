@@ -24,7 +24,7 @@ Consult these resources as needed:
 references/
   native-module.md           Module definition DSL: Name, Function, AsyncFunction, Property, Constant, Events, type system, shared objects
   native-view.md             Native view components: View, Prop, EventDispatcher, view lifecycle, ref-based functions
-  lifecycle.md               Lifecycle hooks: module, iOS src/app/AppDelegate, Android activity/application listeners
+  lifecycle.md               Lifecycle hooks: module, iOS app/AppDelegate, Android activity/application listeners
   config-plugin.md           Config plugins: modifying Info.plist, AndroidManifest.xml, reading values in native code
   module-config.md           expo-module.config.json fields and autolinking configuration
 ```

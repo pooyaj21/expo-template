@@ -1,57 +1,23 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
-import { useLazyBottomSheet } from "@/features/core/dialogs/business-logic/useLazyBottomSheet";
+import { ReactNode, useMemo } from "react";
+import { useLazyBottomSheet } from "@/common/business-logic/hooks/useLazyBottomSheet";
 import {
-  ConfirmDialog,
-  ConfirmDialogProps,
-} from "@/features/core/dialogs/presentation/ConfirmDialog";
+  DialogManagerContext,
+  DialogManagerContextType,
+} from "@/features/core/dialogs/business-logic/useDialogManager";
+import { ConfirmBottomSheetDialog } from "@/features/core/dialogs/presentation/ConfirmBottomSheetDialog";
+import type { ConfirmDialogOptions } from "@/features/core/dialogs/business-logic/dialogTypes";
 
-type DialogApi<O> = {
-  present: (options?: O) => void;
-  dismiss: () => void;
-};
-
-type DialogManagerContextType = {
-  confirm: DialogApi<ConfirmDialogProps>;
-};
-
-const DialogManagerContext = createContext<DialogManagerContextType | null>(
-  null,
-);
-
-export function useDialogManager() {
-  const context = useContext(DialogManagerContext);
-  if (context == null) {
-    throw new Error(
-      "useDialogManager must be used inside DialogManagerProvider",
-    );
-  }
-  return context;
-}
-
-/**
- * App-wide dialogs, mounted once at the root and opened from anywhere:
- *
- *   const { confirm } = useDialogManager();
- *   confirm.present({ title, message, destructive: true, onConfirm: signOut });
- *
- * Each entry is a `useLazyBottomSheet`, so a dialog's body — and any query
- * inside it — only mounts when it is actually presented. Add a dialog by adding
- * one controller and one line to the value and the node list.
- *
- * This lives in `presentation` rather than `business-logic` because it holds
- * rendered nodes. A business-logic hook that needs to raise a dialog should go
- * through a channel, the way alerts do.
- */
 export const DialogManagerProvider = ({
   children,
 }: {
   children: ReactNode;
 }) => {
-  const confirm = useLazyBottomSheet<ConfirmDialogProps>(
+  const confirm = useLazyBottomSheet<ConfirmDialogOptions>(
     ({ ref, options, onClose, onDismiss }) => (
-      <ConfirmDialog
+      <ConfirmBottomSheetDialog
         ref={ref}
         {...options}
+        message={options.message ?? ""}
         onClose={onClose}
         onDismiss={onDismiss}
       />

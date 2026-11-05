@@ -1,33 +1,38 @@
-// The flag catalog. Resolution order is dev override → server → env →
-// default. Delete EXAMPLE once the first real flag lands — it exists so the
-// plumbing has something to resolve.
-export enum FeatureFlagEnums {
-  EXAMPLE = "example",
-}
+/**
+ * Every flag declares exactly one source. Resolution never crosses sources:
+ * an `env` flag never reads the server map, a `server` flag never reads env.
+ */
 
-export enum FeatureFlagSourceEnums {
-  DEV_OVERRIDE = "devOverride",
-  SERVER = "server",
-  ENV = "env",
-  DEFAULT = "default",
-}
+export type FeatureFlagSource = "env" | "server";
 
-export type FeatureFlagValues = Partial<Record<FeatureFlagEnums, boolean>>;
-
-export interface FeatureFlagInterface {
-  flag: FeatureFlagEnums;
-  isEnabled: boolean;
-  source: FeatureFlagSourceEnums;
-  devOverride?: boolean;
-  serverValue?: boolean;
-  envValue?: boolean;
-}
-
-export const FEATURE_FLAG_DEFAULTS: Readonly<
-  Record<FeatureFlagEnums, boolean>
-> = {
-  [FeatureFlagEnums.EXAMPLE]: false,
+export type FlagDefinition<S extends FeatureFlagSource = FeatureFlagSource> = {
+  source: S;
+  default: boolean;
 };
 
-export const FEATURE_FLAG_LIST: readonly FeatureFlagEnums[] =
-  Object.values(FeatureFlagEnums);
+export const flagCatalog = {
+  EXAMPLE_DETAIL: { source: "env", default: true },
+  EXAMPLE_FAVORITES: { source: "server", default: true },
+} as const satisfies Record<string, FlagDefinition>;
+
+export type FlagName = keyof typeof flagCatalog;
+
+export type EnvFlagName = {
+  [K in FlagName]: (typeof flagCatalog)[K]["source"] extends "env" ? K : never;
+}[FlagName];
+
+export type ServerFlagName = {
+  [K in FlagName]: (typeof flagCatalog)[K]["source"] extends "server"
+    ? K
+    : never;
+}[FlagName];
+
+export const FLAG_NAMES = Object.keys(flagCatalog) as FlagName[];
+
+export const ENV_FLAG_NAMES = FLAG_NAMES.filter(
+  (name): name is EnvFlagName => flagCatalog[name].source === "env",
+);
+
+export const SERVER_FLAG_NAMES = FLAG_NAMES.filter(
+  (name): name is ServerFlagName => flagCatalog[name].source === "server",
+);

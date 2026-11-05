@@ -1,32 +1,22 @@
-import { ActivityIndicator, StyleProp, View, ViewStyle } from "react-native";
-import { useAppTheme } from "@/common/presentation/providers/ThemeProvider";
-import { spacing } from "@/common/presentation/theme/AppSpacing";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useAppTheme } from "@/common/business-logic/hooks/useAppTheme";
 
 type PaginationLoadingProps = {
-  isVisible: boolean;
-  style?: StyleProp<ViewStyle>;
+  isVisible?: boolean;
 };
 
-export const PaginationLoading = ({
-  isVisible,
-  style,
-}: PaginationLoadingProps) => {
+export const PaginationLoading = ({ isVisible }: PaginationLoadingProps) => {
   const { colors } = useAppTheme();
-
   if (!isVisible) return null;
-
   return (
-    <View
-      style={[
-        {
-          paddingVertical: spacing.sm,
-          justifyContent: "center",
-          alignItems: "center",
-        },
-        style,
-      ]}
-    >
-      <ActivityIndicator size="small" color={colors.primary.main} />
+    <View style={styles.wrap}>
+      <ActivityIndicator color={colors.primary.main} />
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  wrap: { paddingVertical: 16, alignItems: "center" },
+});
+
+export default PaginationLoading;

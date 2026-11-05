@@ -1,0 +1,37 @@
+export const TABLET_MIN_WIDTH = 600;
+export const TABLET_MIN_ASPECT_RATIO = 0.8;
+
+export const dimensions = {
+  layout: {
+    contentMaxWidth: 1240,
+    tabletSideMargin: 24,
+    columnMaxWidth: 640,
+    columnSideMargin: 20,
+  },
+  bottomSheet: {
+    tablet: {
+      maxWidth: 560,
+    },
+  },
+  list: {
+    sideMargin: 20,
+    spacing: 12,
+    tablet: {
+      spacing: 20,
+      cellWidth: 200,
+    },
+  },
+  toolbar: {
+    height: 56,
+    sideMargin: 16,
+  },
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+  },
+};
+
+export type AppDimensions = typeof dimensions;

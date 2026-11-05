@@ -1,0 +1,15 @@
+export enum TestIdEnums {
+  TOOLBAR_BACK = "toolbar-back",
+  TOOLBAR_SEARCH = "toolbar-search",
+  LANGUAGE_EN = "language-en",
+  LANGUAGE_AR = "language-ar",
+  TAB_HOME = "tab-home",
+  HOME_SCREEN = "home-screen",
+  HOME_LIST = "home-list",
+  SEARCH_INPUT = "search-input",
+  DIALOG_CONFIRM = "dialog-confirm",
+  DIALOG_CANCEL = "dialog-cancel",
+  DIALOG_CLOSE = "dialog-close",
+  EXAMPLE_LIST = "example-list",
+  EXAMPLE_DETAIL = "example-detail",
+}

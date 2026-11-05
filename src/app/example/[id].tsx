@@ -1,7 +1,9 @@
 import { useLocalSearchParams } from "expo-router";
-import { ExampleDetailScreen } from "@/features/example/presentation/ExampleDetailScreen";
+import { ExampleDetailPage } from "@/features/example/presentation/ExampleDetailPage";
 
-export default function Page() {
+const ExampleDetailRoute = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <ExampleDetailScreen id={id ?? ""} />;
-}
+  return <ExampleDetailPage id={String(id ?? "")} />;
+};
+
+export default ExampleDetailRoute;

@@ -107,7 +107,7 @@ export default function MyComponent({ content }: Props) {
 Pass async functions as props to expose native functionality to the DOM component:
 
 ```tsx
-// src/app/index.tsx (native)
+// app/index.tsx (native)
 import { Alert } from "react-native";
 import DOMComponent from "@/components/dom-component";
 
@@ -299,7 +299,7 @@ These hooks don't work directly in DOM components because they need synchronous 
 **Solution:** Read these values in the native parent and pass as props:
 
 ```tsx
-// src/app/[id].tsx (native)
+// app/[id].tsx (native)
 import { useLocalSearchParams, usePathname } from "expo-router";
 import DOMComponent from "@/components/dom-component";
 
@@ -373,7 +373,7 @@ export default function Component({
 Import and use DOM components like regular components:
 
 ```tsx
-// src/app/index.tsx
+// app/index.tsx
 import { View, Text } from "react-native";
 import WebChart from "@/components/web-chart";
 import CodeBlock from "@/components/code-block";

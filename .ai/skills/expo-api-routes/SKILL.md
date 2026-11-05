@@ -24,16 +24,16 @@ Avoid API routes when:
 - **Data is already public** — Use direct fetch to public APIs instead
 - **No secrets required** — Static data or client-safe operations
 - **Real-time updates needed** — Use WebSockets or services like Supabase Realtime
-- **Simple CRUD** — Consider Firebase, Supabase, or Convex for managed backends
+- **Simple CRUD** — Consider a managed backend (BaaS) instead of hand-rolled routes
 - **File uploads** — Use direct-to-storage uploads (S3 presigned URLs, Cloudflare R2)
-- **Authentication only** — Use Clerk, Auth0, or Firebase Auth instead
+- **Authentication only** — Use a third-party auth provider instead
 
 ## File Structure
 
 API routes live in the `app` directory with `+api.ts` suffix:
 
 ```
-src/app/
+app/
   api/
     hello+api.ts          → GET /api/hello
     users+api.ts          → /api/users
@@ -45,7 +45,7 @@ src/app/
 ## Basic API Route
 
 ```ts
-// src/app/api/hello+api.ts
+// app/api/hello+api.ts
 export function GET(request: Request) {
   return Response.json({ message: "Hello from Expo!" });
 }
@@ -56,7 +56,7 @@ export function GET(request: Request) {
 Export named functions for each HTTP method:
 
 ```ts
-// src/app/api/items+api.ts
+// app/api/items+api.ts
 export function GET(request: Request) {
   return Response.json({ items: [] });
 }
@@ -79,7 +79,7 @@ export async function DELETE(request: Request) {
 ## Dynamic Routes
 
 ```ts
-// src/app/api/users/[id]+api.ts
+// app/api/users/[id]+api.ts
 export function GET(request: Request, { id }: { id: string }) {
   return Response.json({ userId: id });
 }
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 Use `process.env` for server-side secrets:
 
 ```ts
-// src/app/api/ai+api.ts
+// app/api/ai+api.ts
 export async function POST(request: Request) {
   const { prompt } = await request.json();
 
@@ -283,7 +283,7 @@ Since filesystem is unavailable, use cloud databases:
 Example with Turso:
 
 ```ts
-// src/app/api/users+api.ts
+// app/api/users+api.ts
 import { createClient } from "@libsql/client/web";
 
 const db = createClient({
@@ -332,7 +332,7 @@ export async function requireAuth(request: Request) {
   return { userId: "123" };
 }
 
-// src/app/api/protected+api.ts
+// app/api/protected+api.ts
 import { requireAuth } from "../../utils/auth";
 
 export async function GET(request: Request) {
@@ -344,7 +344,7 @@ export async function GET(request: Request) {
 ### Proxy External API
 
 ```ts
-// src/app/api/weather+api.ts
+// app/api/weather+api.ts
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const city = url.searchParams.get("city");

@@ -1,265 +1,167 @@
 #!/usr/bin/env node
 /**
- * Scaffolds a VLFA feature slice, wired end to end.
+ * Scaffold a VLFA feature slice:
+ *   npm run feature -- <name>
  *
- *   npm run feature -- orders
- *   npm run feature -- order-history --no-route
- *
- * Creates data-access (types, service, queries), business-logic (the use-case
- * hook), presentation (screen + cell), and the route shell — then tells you the
- * two files to edit by hand, because a generator must not silently rewrite the
- * routes map or the string catalog.
+ * Creates:
+ *   src/features/<name>/data-access/<name>Types.ts
+ *   src/features/<name>/data-access/<name>Service.ts
+ *   src/features/<name>/data-access/<name>Queries.ts
+ *   src/features/<name>/business-logic/use<Name>.ts
+ *   src/features/<name>/presentation/<Name>Page.tsx
  */
 const fs = require("fs");
 const path = require("path");
 
-const args = process.argv.slice(2);
-const rawName = args.find((arg) => !arg.startsWith("-"));
-const withRoute = !args.includes("--no-route");
-
-if (!rawName) {
-  console.error("Usage: npm run feature -- <feature-name> [--no-route]");
-  process.exit(1);
-}
-
-if (!/^[a-z][a-z0-9-]*$/.test(rawName)) {
+const raw = process.argv[2];
+if (!raw || raw.startsWith("-")) {
+  console.error("Usage: npm run feature -- <name>");
   console.error(
-    `Invalid name "${rawName}". Use lowercase kebab-case, e.g. order-history`,
+    "  <name> is kebab-case or camelCase (e.g. demo, user-profile)",
   );
   process.exit(1);
 }
 
-const kebab = rawName;
-const camel = kebab.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
-const Pascal = camel.charAt(0).toUpperCase() + camel.slice(1);
+const kebab = raw
+  .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+  .replace(/[\s_]+/g, "-")
+  .replace(/-+/g, "-")
+  .toLowerCase()
+  .replace(/[^a-z0-9-]/g, "")
+  .replace(/^-+|-+$/g, "");
 
-const root = path.join(__dirname, "..");
-const featureDir = path.join(root, "src", "features", kebab);
-
-if (fs.existsSync(featureDir)) {
-  console.error(`src/features/${kebab} already exists.`);
+if (!kebab || !/^[a-z][a-z0-9-]*$/.test(kebab)) {
+  console.error(`Invalid feature name: ${raw}`);
   process.exit(1);
 }
 
-const files = {
-  [`data-access/${camel}Types.ts`]: `import { BasePaginationPayload } from "@/common/data-access/type";
+const camel = kebab.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+const pascal = camel.charAt(0).toUpperCase() + camel.slice(1);
 
-export interface ${Pascal}Interface {
+const root = path.resolve(__dirname, "..");
+const featureRoot = path.join(root, "src", "features", kebab);
+
+if (fs.existsSync(featureRoot)) {
+  console.error(`Feature already exists: ${featureRoot}`);
+  process.exit(1);
+}
+
+const write = (rel, contents) => {
+  const abs = path.join(featureRoot, rel);
+  fs.mkdirSync(path.dirname(abs), { recursive: true });
+  fs.writeFileSync(abs, contents.trimStart(), "utf8");
+  console.log(`created ${path.relative(root, abs)}`);
+};
+
+write(
+  `data-access/${camel}Types.ts`,
+  `
+export interface ${pascal}Item {
   id: number;
   title: string;
 }
 
-export interface ${Pascal}ListPayload extends BasePaginationPayload {
-  // Add filters here — search, sort and page come from BasePaginationPayload.
-  sort?: string;
+export interface ${pascal}ListPayload {
+  page?: number;
 }
 `,
+);
 
-  [`data-access/${camel}Service.ts`]: `import { AxiosInstance } from "axios";
-import {
-  BasePaginationResponse,
-  BaseResponseType,
-} from "@/common/data-access/type";
-import {
-  ${Pascal}Interface,
-  ${Pascal}ListPayload,
-} from "@/features/${kebab}/data-access/${camel}Types";
+write(
+  `data-access/${camel}Service.ts`,
+  `
+import { apiClient } from "@/common/data-access/api/axios";
+import { ${pascal}Item } from "@/features/${kebab}/data-access/${camel}Types";
 
 export const ${camel}Service = {
-  list: async (
-    axios: AxiosInstance,
-    params: ${Pascal}ListPayload,
-  ): Promise<BasePaginationResponse<${Pascal}Interface>> =>
-    (await axios.get("/${kebab}", { params })).data,
-
-  detail: async (
-    axios: AxiosInstance,
-    id: string,
-  ): Promise<BaseResponseType<${Pascal}Interface>> =>
-    (await axios.get(\`/${kebab}/\${id}\`)).data,
+  list: async (): Promise<${pascal}Item[]> => {
+    const response = await apiClient.get<${pascal}Item[]>("/${kebab}");
+    return response.data;
+  },
 };
 `,
+);
 
-  [`data-access/${camel}Queries.ts`]: `import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { useApiClient } from "@/features/core/api/data-access/apiClientContext";
-import { useDefaultQueryKey } from "@/common/data-access/api/queryScope";
-import { nextPageParam } from "@/common/data-access/api/pagination";
+write(
+  `data-access/${camel}Queries.ts`,
+  `
+import { useQuery } from "@tanstack/react-query";
+import { useDefaultQueryKey } from "@/common/business-logic/hooks/useDefaultQueryKey";
 import { ${camel}Service } from "@/features/${kebab}/data-access/${camel}Service";
-import { ${Pascal}ListPayload } from "@/features/${kebab}/data-access/${camel}Types";
 
-export function use${Pascal}ListQuery(params: ${Pascal}ListPayload = {}) {
-  const axios = useApiClient();
-
-  return useInfiniteQuery({
-    queryKey: useDefaultQueryKey(["${kebab}-list", params]),
-    queryFn: ({ pageParam }) =>
-      ${camel}Service.list(axios, { ...params, page: pageParam }),
-    initialPageParam: 1,
-    getNextPageParam: nextPageParam,
+export const use${pascal}ListQuery = () =>
+  useQuery({
+    queryKey: useDefaultQueryKey(["${kebab}-list"]),
+    queryFn: () => ${camel}Service.list(),
   });
-}
-
-export function use${Pascal}DetailQuery(id: string) {
-  const axios = useApiClient();
-
-  return useQuery({
-    queryKey: useDefaultQueryKey(["${kebab}-detail", id]),
-    queryFn: () => ${camel}Service.detail(axios, id),
-    enabled: Boolean(id),
-  });
-}
 `,
+);
 
-  [`business-logic/use${Pascal}List.ts`]: `import {
-  infiniteListMapper,
-  infiniteTotalMapper,
-} from "@/common/data-access/api/pagination";
-import { use${Pascal}ListQuery } from "@/features/${kebab}/data-access/${camel}Queries";
-import { ${Pascal}ListPayload } from "@/features/${kebab}/data-access/${camel}Types";
+write(
+  `business-logic/use${pascal}.ts`,
+  `
+import { use${pascal}ListQuery } from "@/features/${kebab}/data-access/${camel}Queries";
 
-export const use${Pascal}List = (params: ${Pascal}ListPayload = {}) => {
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    error,
-    refetch,
-  } = use${Pascal}ListQuery(params);
-
-  const list = infiniteListMapper(data);
+export const use${pascal} = () => {
+  const query = use${pascal}ListQuery();
+  const list = query.data ?? [];
 
   return {
     list,
-    total: infiniteTotalMapper(data),
-    isLoading: isLoading || (isFetching && !isFetchingNextPage),
-    isEmpty: !isLoading && list.length === 0,
-    error: error ?? undefined,
-    refetch,
-    pagination: {
-      isFetchingNextPage,
-      fetchNextPageIfAvailable: () => {
-        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
-      },
-    },
+    isLoading: query.isLoading,
+    isEmpty: !query.isLoading && list.length === 0,
+    error: query.error,
+    refetch: query.refetch,
   };
 };
 `,
+);
 
-  [`presentation/components/${Pascal}Cell.tsx`]: `import { StyleSheet } from "react-native";
-import { useAppTheme } from "@/common/presentation/providers/ThemeProvider";
-import { radius, spacing } from "@/common/presentation/theme/AppSpacing";
-import { AppPressable } from "@/common/presentation/components/app/AppPressable";
-import { AppText } from "@/common/presentation/components/app/AppText";
-import { ${Pascal}Interface } from "@/features/${kebab}/data-access/${camel}Types";
+write(
+  `presentation/${pascal}Page.tsx`,
+  `
+import { View, StyleSheet } from "react-native";
+import { AppText } from "@/common/presentation/components/AppText";
+import { PageContainer } from "@/common/presentation/components/PageContainer";
+import { StateHandler } from "@/common/presentation/components/StateHandler";
+import { use${pascal} } from "@/features/${kebab}/business-logic/use${pascal}";
 
-type ${Pascal}CellProps = {
-  item: ${Pascal}Interface;
-  onPress: (item: ${Pascal}Interface) => void;
-};
-
-export const ${Pascal}Cell = ({ item, onPress }: ${Pascal}CellProps) => {
-  const { colors } = useAppTheme();
+export const ${pascal}Page = () => {
+  const { list, isLoading, error, isEmpty, refetch } = use${pascal}();
 
   return (
-    <AppPressable
-      enableAnimation
-      onPress={() => onPress(item)}
-      style={[styles.container, { backgroundColor: colors.background.level1 }]}
-    >
-      <AppText size={14} weight="semiBold" numberOfLines={1}>
-        {item.title}
-      </AppText>
-    </AppPressable>
+    <PageContainer>
+      <View style={styles.root} testID="${kebab}-page">
+        <StateHandler
+          data={list}
+          error={error}
+          isLoading={isLoading}
+          isEmpty={isEmpty}
+          retry={refetch}
+        >
+          {(items) => (
+            <AppText testID="${kebab}-list">
+              {items.length} item(s)
+            </AppText>
+          )}
+        </StateHandler>
+      </View>
+    </PageContainer>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.md, borderRadius: radius.md },
+  root: { flex: 1 },
 });
 `,
+);
 
-  [`presentation/${Pascal}ListScreen.tsx`]: `import { FlashList } from "@shopify/flash-list";
-import { PageContainer } from "@/common/presentation/components/PageContainer";
-import { StateHandler } from "@/common/presentation/components/StateHandler";
-import { Spacer } from "@/common/presentation/components/Spacer";
-import { AppToolbar } from "@/common/presentation/components/app/AppToolbar";
-import { spacing } from "@/common/presentation/theme/AppSpacing";
-import { use${Pascal}List } from "@/features/${kebab}/business-logic/use${Pascal}List";
-import { ${Pascal}Cell } from "@/features/${kebab}/presentation/components/${Pascal}Cell";
-
-export const ${Pascal}ListScreen = () => {
-  const { list, isLoading, isEmpty, error, refetch, pagination } =
-    use${Pascal}List();
-
-  return (
-    <PageContainer safeEdges="top">
-      {/* TODO: replace with getString("${camel}_title") once the key exists. */}
-      <AppToolbar title="${Pascal}" />
-
-      <StateHandler
-        data={list}
-        isLoading={isLoading}
-        isEmpty={isEmpty}
-        error={error}
-        retry={refetch}
-      >
-        {(items) => (
-          <FlashList
-            data={items}
-            keyExtractor={(item) => item.id.toString()}
-            contentContainerStyle={{ padding: spacing.md }}
-            ItemSeparatorComponent={() => <Spacer height={spacing.xs} />}
-            onEndReachedThreshold={0.5}
-            onEndReached={pagination.fetchNextPageIfAvailable}
-            renderItem={({ item }) => (
-              <${Pascal}Cell item={item} onPress={() => {}} />
-            )}
-          />
-        )}
-      </StateHandler>
-    </PageContainer>
-  );
-};
-`,
-};
-
-for (const [relativePath, contents] of Object.entries(files)) {
-  const target = path.join(featureDir, relativePath);
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.writeFileSync(target, contents);
-}
-
-if (withRoute) {
-  const routeDir = path.join(root, "src", "app", kebab);
-  fs.mkdirSync(routeDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(routeDir, "index.tsx"),
-    `import { ${Pascal}ListScreen } from "@/features/${kebab}/presentation/${Pascal}ListScreen";
-
-export default function Page() {
-  return <${Pascal}ListScreen />;
-}
-`,
-  );
-}
-
-console.log(`Created src/features/${kebab}/`);
-Object.keys(files).forEach((file) => console.log(`  ${file}`));
-if (withRoute) console.log(`  → src/app/${kebab}/index.tsx`);
-
-console.log("\nStill yours to do:");
+console.log(`\nScaffolded features/${kebab}. Next:`);
+console.log(`  - wire a thin route under src/app/`);
 console.log(
-  `  1. Add \`${camel}: () => "/${kebab}"\` to src/common/business-logic/routes/paths.ts`,
+  `  - add routes.${camel}… in src/common/business-logic/routes/paths.ts`,
 );
 console.log(
-  `  2. Add \`${camel}_title\` to src/common/data-access/localization/strings.ts (en + ar)`,
+  `  - add localization keys; replace placeholder copy in ${pascal}Page`,
 );
-if (withRoute) {
-  console.log(
-    `  3. Register <Stack.Screen name="${kebab}" /> in src/app/_layout.tsx`,
-  );
-}
-console.log("  4. Point the service paths at the real endpoints");
+console.log(`  - point ${camel}Service at a real endpoint`);

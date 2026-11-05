@@ -22,7 +22,7 @@ Form sheets are modal presentations that appear as a card sliding up from the bo
 Configure the Stack.Screen with transparent backgrounds and sheet presentation:
 
 ```tsx
-// src/app/_layout.tsx
+// app/_layout.tsx
 import { Stack } from "expo-router";
 
 export default function Layout() {
@@ -53,7 +53,7 @@ export default function Layout() {
 Use `flex: 1` to allow the content to fill available space, enabling footer positioning:
 
 ```tsx
-// src/app/about.tsx
+// app/about.tsx
 import { View, Text, StyleSheet } from "react-native";
 
 export default function AboutSheet() {
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
 Use `sheetLargestUndimmedDetentIndex` (zero-indexed) to keep content behind the form sheet interactive — e.g. letting users pan a map beneath it. Setting it to `1` allows interaction at the first two detents but dims on the third.
 
 ```tsx
-// src/app/_layout.tsx
+// app/_layout.tsx
 import { Stack } from "expo-router";
 
 export default function Layout() {
@@ -161,7 +161,7 @@ export default function Layout() {
 ```
 
 ```tsx
-// src/app/confirm.tsx
+// app/confirm.tsx
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import { router } from "expo-router";
 

@@ -5,7 +5,6 @@ type SpacerProps = {
   height?: number;
 };
 
-/** Explicit gap where `gap` on the parent is not available or not wanted. */
-export const Spacer = ({ width, height }: SpacerProps) => (
-  <View style={{ width, height }} />
+export const Spacer = (props: SpacerProps) => (
+  <View style={{ width: props.width, height: props.height }} />
 );

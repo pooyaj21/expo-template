@@ -1,36 +1,20 @@
-import {
-  infiniteListMapper,
-  infiniteTotalMapper,
-} from "@/common/data-access/api/pagination";
+import { useCallback, useMemo } from "react";
 import { useExampleListQuery } from "@/features/example/data-access/exampleQueries";
-import { ExampleListPayload } from "@/features/example/data-access/exampleTypes";
 
-export const useExampleList = (params: ExampleListPayload = {}) => {
-  const {
-    data,
-    isLoading,
-    isFetching,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-    error,
-    refetch,
-  } = useExampleListQuery(params);
+export const useExampleList = () => {
+  const query = useExampleListQuery();
+  const list = useMemo(() => query.data ?? [], [query.data]);
 
-  const list = infiniteListMapper(data);
+  const refresh = useCallback(async () => {
+    await query.refetch();
+  }, [query]);
 
   return {
     list,
-    total: infiniteTotalMapper(data),
-    isLoading: isLoading || (isFetching && !isFetchingNextPage),
-    isEmpty: !isLoading && list.length === 0,
-    error: error ?? undefined,
-    refetch,
-    pagination: {
-      isFetchingNextPage,
-      fetchNextPageIfAvailable: () => {
-        if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
-      },
-    },
+    isLoading: query.isLoading,
+    isRefreshing: query.isRefetching && !query.isLoading,
+    isEmpty: !query.isLoading && list.length === 0,
+    error: query.error,
+    refetch: refresh,
   };
 };

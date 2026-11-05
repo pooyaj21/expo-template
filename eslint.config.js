@@ -1,83 +1,204 @@
 // https://docs.expo.dev/guides/using-eslint/
 const { defineConfig } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");
+const boundaries = require("eslint-plugin-boundaries");
+
+const element = (type) => ({ element: { type } });
+const allowTo = (...types) => types.map((type) => ({ to: element(type) }));
 
 module.exports = defineConfig([
-  expoConfig,
+  ...expoConfig,
   {
-    ignores: ["dist/*", ".expo/*", "node_modules/*"],
+    ignores: [
+      "dist/*",
+      "node_modules/*",
+      "android/*",
+      "ios/*",
+      "build-logs/*",
+      "app.config.js",
+      "babel.config.js",
+      "metro.config.js",
+      "plugins/**",
+      "scripts/**",
+    ],
   },
   {
-    // Build/tooling scripts run in Node, not in the app bundle.
-    files: ["scripts/**/*.js"],
-    languageOptions: {
-      globals: {
-        __dirname: "readonly",
-        require: "readonly",
-        module: "writable",
-        process: "readonly",
-        console: "readonly",
-      },
+    plugins: {
+      boundaries,
     },
-  },
-  {
-    // VLFA layer boundaries. presentation -> business-logic -> data-access.
-    // A violation here is an architecture bug, not a style nit.
-    files: ["src/**/data-access/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
+    settings: {
+      "boundaries/include": ["src/**/*"],
+      "boundaries/elements": [
+        { type: "app", pattern: "src/app/**" },
+        { type: "common-presentation", pattern: "src/common/presentation/**" },
         {
-          patterns: [
-            {
-              group: ["**/presentation/**", "@/common/presentation/*"],
-              message:
-                "data-access must not import presentation. It is the bottom layer.",
-            },
-            {
-              group: ["**/business-logic/**", "@/common/business-logic/*"],
-              message:
-                "data-access must not import business-logic. Invert the dependency (channel or registry).",
-            },
+          type: "common-business-logic",
+          pattern: "src/common/business-logic/**",
+        },
+        {
+          type: "common-data-access",
+          pattern: "src/common/data-access/**",
+        },
+        {
+          type: "feature-presentation",
+          pattern: [
+            "src/features/*/presentation/**",
+            "src/features/core/*/presentation/**",
           ],
+        },
+        {
+          type: "feature-business-logic",
+          pattern: [
+            "src/features/*/business-logic/**",
+            "src/features/core/*/business-logic/**",
+          ],
+        },
+        {
+          type: "feature-data-access",
+          pattern: [
+            "src/features/*/data-access/**",
+            "src/features/core/*/data-access/**",
+          ],
+        },
+        {
+          type: "feature-root",
+          pattern: "src/features/*.*",
+        },
+      ],
+      "boundaries/files": [
+        {
+          pattern: "src/common/business-logic/store/app-state.ts",
+          category: "app-state",
+        },
+        {
+          pattern: [
+            "src/features/*/data-access/*Types.ts",
+            "src/features/core/*/data-access/*Types.ts",
+          ],
+          category: "data-access-types",
         },
       ],
     },
-  },
-  {
-    files: ["src/**/business-logic/**/*.{ts,tsx}"],
     rules: {
-      "no-restricted-imports": [
+      "boundaries/dependencies": [
         "error",
         {
-          patterns: [
+          default: "disallow",
+          policies: [
+            // app → features/common
             {
-              group: ["**/presentation/**", "@/common/presentation/*"],
-              message:
-                "business-logic must not import presentation. Return state; let the UI render it.",
+              from: element("app"),
+              allow: allowTo(
+                "feature-presentation",
+                "feature-business-logic",
+                "feature-data-access",
+                "feature-root",
+                "common-presentation",
+                "common-business-logic",
+                "common-data-access",
+              ),
             },
-          ],
-        },
-      ],
-    },
-  },
-  {
-    // Routes are shells. Business logic and reusable UI live in src/features + src/common.
-    files: ["src/app/**/*.{ts,tsx}"],
-    rules: {
-      "no-restricted-imports": [
-        "error",
-        {
-          paths: [
+
+            // feature presentation → own business-logic, own *Types.ts, common
             {
-              name: "axios",
-              message:
-                "Routes never call the network. Consume a business-logic hook.",
+              from: element("feature-presentation"),
+              allow: [
+                ...allowTo(
+                  "feature-presentation",
+                  "feature-business-logic",
+                  "common-presentation",
+                  "common-business-logic",
+                ),
+                { to: { file: { categories: "data-access-types" } } },
+                { to: { file: { categories: "app-state" } } },
+              ],
+            },
+
+            // business-logic → data-access, common (never presentation)
+            {
+              from: element("feature-business-logic"),
+              allow: [
+                ...allowTo(
+                  "feature-business-logic",
+                  "feature-data-access",
+                  "common-business-logic",
+                  "common-data-access",
+                ),
+                { to: { file: { categories: "data-access-types" } } },
+                { to: { file: { categories: "app-state" } } },
+              ],
+            },
+
+            // data-access → common data-access + query-key helpers
+            {
+              from: element("feature-data-access"),
+              allow: [
+                ...allowTo(
+                  "feature-data-access",
+                  "common-data-access",
+                  "common-business-logic",
+                ),
+                { to: { file: { categories: "data-access-types" } } },
+              ],
+            },
+
+            // feature root files (e.g. CoreBootstrap.ts)
+            {
+              from: element("feature-root"),
+              allow: [
+                ...allowTo(
+                  "feature-presentation",
+                  "feature-business-logic",
+                  "feature-data-access",
+                  "common-presentation",
+                  "common-business-logic",
+                  "common-data-access",
+                ),
+                { to: { file: { categories: "data-access-types" } } },
+                { to: { file: { categories: "app-state" } } },
+              ],
+            },
+
+            // common layers — never import features except app-state.
+            {
+              from: element("common-presentation"),
+              allow: [
+                ...allowTo("common-presentation", "common-business-logic"),
+                {
+                  to: { element: { type: "common-data-access" } },
+                  dependency: { kind: "type" },
+                },
+                { to: { file: { categories: "app-state" } } },
+              ],
             },
             {
-              name: "@tanstack/react-query",
-              message:
-                "Routes never use React Query directly. Consume a business-logic hook.",
+              from: element("common-business-logic"),
+              allow: [
+                ...allowTo("common-business-logic", "common-data-access"),
+                {
+                  to: { element: { type: "common-presentation" } },
+                  dependency: { kind: "type" },
+                },
+                { to: { file: { categories: "app-state" } } },
+              ],
+            },
+            {
+              from: element("common-data-access"),
+              allow: allowTo("common-data-access"),
+            },
+
+            // ONLY allowed common → features import site
+            {
+              from: { file: { categories: "app-state" } },
+              allow: [
+                ...allowTo(
+                  "common-business-logic",
+                  "common-data-access",
+                  "feature-business-logic",
+                ),
+                { to: { file: { categories: "app-state" } } },
+                { to: { file: { categories: "data-access-types" } } },
+              ],
             },
           ],
         },

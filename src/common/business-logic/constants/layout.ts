@@ -1,0 +1,2 @@
+export const APP_TOOLBAR_HEIGHT = 56;
+export const BOTTOM_SHEET_HANDLE_HEIGHT = 24;

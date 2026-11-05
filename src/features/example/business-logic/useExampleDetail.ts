@@ -1,13 +1,13 @@
 import { useExampleDetailQuery } from "@/features/example/data-access/exampleQueries";
 
-export const useExampleDetail = (id: string) => {
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    useExampleDetailQuery(id);
+export const useExampleDetail = (id: string | number) => {
+  const query = useExampleDetailQuery(id);
 
   return {
-    example: data?.data,
-    isLoading: isLoading || (isFetching && data == null),
-    error: isError ? (error ?? undefined) : undefined,
-    refetch,
+    post: query.data,
+    isLoading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    isEmpty: !query.isLoading && query.data == null && query.error == null,
   };
 };

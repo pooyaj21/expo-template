@@ -1,53 +1,74 @@
-import { ReactNode } from "react";
+import React from "react";
 import { Loading } from "@/common/presentation/components/Loading";
-import { ErrorView } from "@/common/presentation/components/ErrorView";
-import { useLocalization } from "@/common/business-logic/localization/localizationContext";
-import { SimpleCallback } from "@/common/data-access/type";
+import { Error } from "@/common/presentation/components/Error";
+import {
+  IllustratedError,
+  IllustratedErrorTypeEnums,
+} from "@/common/presentation/components/IllustratedError";
+import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
+import { backendMessage } from "@/common/business-logic/utils/errorMessage";
+import {
+  HttpStatusEnums,
+  httpStatus,
+} from "@/common/business-logic/utils/httpStatus";
 
 type StateHandlerProps<T> = {
   data: T | undefined;
+  children: (data: NonNullable<T>) => React.ReactNode;
+  error: Error | null | undefined;
   isLoading: boolean;
-  error?: unknown;
   isEmpty?: boolean;
-  retry?: SimpleCallback;
-  children: (data: NonNullable<T>) => ReactNode;
-  loadingComponent?: ReactNode;
-  errorComponent?: (error: unknown) => ReactNode;
-  emptyComponent?: ReactNode;
+  retry: () => void;
+  errorComponent?: (error: Error | null | undefined) => React.ReactNode;
+  loadingComponent?: React.ReactNode;
+  emptyComponent?: React.ReactNode;
 };
 
-/**
- * Loading / error / empty / content in one place. Screens that hand-roll these
- * four branches drift apart; wrapping remote data in this keeps them identical.
- */
 export const StateHandler = <T,>({
   data,
-  isLoading,
+  children,
   error,
+  isLoading,
   isEmpty,
   retry,
-  children,
-  loadingComponent,
   errorComponent,
+  loadingComponent,
   emptyComponent,
 }: StateHandlerProps<T>) => {
   const { getString } = useLocalization();
 
-  if (isLoading) return <>{loadingComponent ?? <Loading />}</>;
-
-  if (error) {
-    return <>{errorComponent?.(error) ?? <ErrorView onRetry={retry} />}</>;
-  }
-
-  if (isEmpty || data == null) {
+  const renderError = (queryError: Error) => {
+    const status = httpStatus(queryError);
+    const message = backendMessage(queryError);
+    if (status === HttpStatusEnums.NOT_FOUND) {
+      return (
+        <IllustratedError
+          type={IllustratedErrorTypeEnums.NOT_FOUND}
+          subtitle={message}
+        />
+      );
+    }
+    if (status != null && status >= HttpStatusEnums.INTERNAL_SERVER_ERROR) {
+      return (
+        <IllustratedError
+          type={IllustratedErrorTypeEnums.SERVER_ERROR}
+          subtitle={message}
+          button={{ title: getString("common.retry"), onPress: retry }}
+        />
+      );
+    }
     return (
-      <>
-        {emptyComponent ?? (
-          <ErrorView title={getString("shared_empty_title")} onRetry={retry} />
-        )}
-      </>
+      <Error title={message ?? getString("common.error")} onRetry={retry} />
     );
-  }
+  };
 
-  return <>{children(data)}</>;
+  if (isLoading) return loadingComponent ?? <Loading />;
+  if (error) return errorComponent?.(error) ?? renderError(error);
+  if (isEmpty) {
+    return emptyComponent ?? <Error title={getString("common.empty")} />;
+  }
+  if (data == null) return loadingComponent ?? <Loading />;
+  return children(data);
 };
+
+export default StateHandler;

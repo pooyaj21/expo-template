@@ -50,7 +50,7 @@ Wrap only the element that should animate. Siblings outside `Link.AppleZoom` are
 Use `Link.AppleZoomTarget` on the destination screen to align the zoom animation to a specific element:
 
 ```tsx
-// Destination screen (e.g., src/app/photo.tsx)
+// Destination screen (e.g., app/photo.tsx)
 import { Link } from "expo-router";
 
 export default function PhotoScreen() {

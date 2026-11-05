@@ -1,21 +1,26 @@
 import { ReactNode } from "react";
-import { StyleProp, View, ViewStyle } from "react-native";
-import { useAppTheme } from "@/common/presentation/providers/ThemeProvider";
+import { I18nManager, StyleProp, View, ViewStyle } from "react-native";
+
+export type CustomIconProps = {
+  size?: number;
+  color?: string;
+};
 
 type IconViewProps = {
   children: ReactNode;
-  /** Directional glyphs (arrows, chevrons) mirror in RTL; logos must not. */
-  ignoreRtl?: boolean;
   style?: StyleProp<ViewStyle>;
+  ignoreRtl?: boolean;
 };
 
-export const IconView = ({ children, ignoreRtl, style }: IconViewProps) => {
-  const { isRtl } = useAppTheme();
-  const shouldMirror = isRtl && !ignoreRtl;
+export const IconView = ({ children, style, ignoreRtl }: IconViewProps) => (
+  <View
+    style={[
+      ignoreRtl && I18nManager.isRTL ? { transform: [{ scaleX: -1 }] } : null,
+      style,
+    ]}
+  >
+    {children}
+  </View>
+);
 
-  return (
-    <View style={[shouldMirror && { transform: [{ scaleX: -1 }] }, style]}>
-      {children}
-    </View>
-  );
-};
+export default IconView;

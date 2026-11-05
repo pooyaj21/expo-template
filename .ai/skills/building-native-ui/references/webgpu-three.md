@@ -507,7 +507,7 @@ npx expo run:ios
 
 ```
 src/
-├── src/app/
+├── app/
 │   └── index.tsx           # Entry point with lazy loading
 ├── components/
 │   ├── scene.tsx           # Main 3D scene

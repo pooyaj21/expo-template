@@ -1,0 +1,12 @@
+appId: com.pj21.apptemplate
+name: "Smoke: app launches, example list visible"
+tags:
+  - smoke
+---
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "example-list"
+    timeout: 60000
+- assertVisible:
+    id: "example-list"

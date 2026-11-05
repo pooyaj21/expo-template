@@ -280,7 +280,7 @@ If you are using SDK 55 and later **use the md prop to specify Material Symbols 
 Native tabs don't render headers. Nest Stacks inside each tab for navigation headers:
 
 ```tsx
-// src/app/_layout.tsx
+// app/(tabs)/_layout.tsx
 import { NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
@@ -294,7 +294,7 @@ export default function TabLayout() {
   );
 }
 
-// src/app/(home)/_layout.tsx
+// app/(tabs)/(home)/_layout.tsx
 import Stack from "expo-router/stack";
 
 export default function HomeStack() {
@@ -315,7 +315,7 @@ export default function HomeStack() {
 Use platform-specific files for separate native and web tab layouts:
 
 ```
-src/app/
+app/
   _layout.tsx          # NativeTabs for iOS/Android
   _layout.web.tsx      # Headless tabs for web (expo-router/ui)
 ```

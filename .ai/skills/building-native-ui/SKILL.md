@@ -261,7 +261,7 @@ Present a screen as a dynamic form sheet:
 A standard app layout with tabs and stacks inside each tab:
 
 ```
-src/app/
+app/
   _layout.tsx — <NativeTabs />
   (index,search)/
     _layout.tsx — <Stack />
@@ -270,7 +270,7 @@ src/app/
 ```
 
 ```tsx
-// src/app/_layout.tsx
+// app/_layout.tsx
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { Theme } from "../components/theme";
 
@@ -292,7 +292,7 @@ export default function Layout() {
 Create a shared group route so both tabs can push common screens:
 
 ```tsx
-// src/app/(index,search)/_layout.tsx
+// app/(index,search)/_layout.tsx
 import { Stack } from "expo-router/stack";
 import { PlatformColor } from "react-native";
 

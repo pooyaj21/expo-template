@@ -1,5 +1,8 @@
-import { HomeScreen } from "@/features/home/presentation/HomeScreen";
+import { Redirect } from "expo-router";
+import { routes } from "@/common/business-logic/routes/paths";
 
-export default function Page() {
-  return <HomeScreen />;
-}
+const Index = () => {
+  return <Redirect href={routes.tabs()} />;
+};
+
+export default Index;

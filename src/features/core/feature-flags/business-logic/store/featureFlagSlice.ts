@@ -1,91 +1,88 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { create, StateCreator } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { AppConfig } from "@/common/data-access/config/AppConfig";
-import { envFeatureFlags } from "@/features/core/feature-flags/data-access/envFeatureFlags";
+import { StateCreator } from "zustand";
 import {
-  FEATURE_FLAG_DEFAULTS,
-  FeatureFlagEnums,
-  FeatureFlagInterface,
-  FeatureFlagSourceEnums,
-  FeatureFlagValues,
-} from "@/features/core/feature-flags/data-access/featureFlagTypes";
+  FlagName,
+  ServerFlagName,
+  flagCatalog,
+  envFlagValues,
+  EnvFlagName,
+} from "@/features/core/feature-flags/business-logic/flagCatalog";
+import { isDevelop } from "@/features/core/environment/business-logic/appConfig";
 
-interface FeatureFlagState {
-  serverFlags: FeatureFlagValues;
-  devOverrides: FeatureFlagValues;
-  updateServerFlags: (serverFlags: FeatureFlagValues) => void;
-  setDevOverride: (flag: FeatureFlagEnums, value?: boolean) => void;
-  clearDevOverrides: () => void;
-}
-
-const createFeatureFlagSlice: StateCreator<FeatureFlagState> = (set) => ({
-  serverFlags: {},
-  devOverrides: {},
-  updateServerFlags: (serverFlags) => set({ serverFlags }),
-  setDevOverride: (flag, value) =>
-    set((state) => ({
-      devOverrides: { ...state.devOverrides, [flag]: value },
-    })),
-  clearDevOverrides: () => set({ devOverrides: {} }),
-});
-
-export const useFeatureFlagStore = create<FeatureFlagState>()(
-  persist(
-    (...a) => ({
-      ...createFeatureFlagSlice(...a),
-    }),
-    {
-      // Matches StorageKeys.FEATURE_FLAGS — only overrides are persisted.
-      name: "FEATURE_FLAG_STORAGE",
-      version: 1,
-      storage: createJSONStorage(() => AsyncStorage),
-      // Server flags come back on every /app/settings call, so only the
-      // debug-screen overrides are worth keeping across restarts.
-      partialize: (state) => ({ devOverrides: state.devOverrides }),
-    },
-  ),
-);
-
-export type FeatureFlagLayers = Pick<
-  FeatureFlagState,
-  "serverFlags" | "devOverrides"
->;
-
-export const resolveFeatureFlag = (
-  flag: FeatureFlagEnums,
-  layers: FeatureFlagLayers,
-): FeatureFlagInterface => {
-  const devOverride = AppConfig.isDevelop
-    ? layers.devOverrides[flag]
-    : undefined;
-  const serverValue = layers.serverFlags[flag];
-  const envValue = envFeatureFlags[flag];
-
-  const winner = (): Pick<FeatureFlagInterface, "isEnabled" | "source"> => {
-    if (devOverride !== undefined) {
-      return {
-        isEnabled: devOverride,
-        source: FeatureFlagSourceEnums.DEV_OVERRIDE,
-      };
-    }
-    if (serverValue !== undefined) {
-      return { isEnabled: serverValue, source: FeatureFlagSourceEnums.SERVER };
-    }
-    if (envValue !== undefined) {
-      return { isEnabled: envValue, source: FeatureFlagSourceEnums.ENV };
-    }
-    return {
-      isEnabled: FEATURE_FLAG_DEFAULTS[flag],
-      source: FeatureFlagSourceEnums.DEFAULT,
-    };
-  };
-
-  return { flag, devOverride, serverValue, envValue, ...winner() };
+export type FeatureFlagSlice = {
+  featureFlagServerValues: Partial<Record<ServerFlagName, boolean>>;
+  featureFlagDevOverrides: Partial<Record<FlagName, boolean>>;
+  updateServerFeatureFlags: (
+    flags: Partial<Record<ServerFlagName, boolean>>,
+  ) => void;
+  setFeatureFlagDevOverride: (flag: FlagName, value?: boolean) => void;
+  clearFeatureFlagDevOverrides: () => void;
 };
 
-export const getFeatureFlag = (flag: FeatureFlagEnums): FeatureFlagInterface =>
-  resolveFeatureFlag(flag, useFeatureFlagStore.getState());
+export const createFeatureFlagSlice: StateCreator<
+  FeatureFlagSlice,
+  [],
+  [],
+  FeatureFlagSlice
+> = (set) => ({
+  featureFlagServerValues: {},
+  featureFlagDevOverrides: {},
+  updateServerFeatureFlags: (flags) =>
+    set({ featureFlagServerValues: { ...flags } }),
+  setFeatureFlagDevOverride: (flag, value) =>
+    set((state) => {
+      const featureFlagDevOverrides = {
+        ...state.featureFlagDevOverrides,
+      };
+      if (value === undefined) {
+        delete featureFlagDevOverrides[flag];
+      } else {
+        featureFlagDevOverrides[flag] = value;
+      }
+      return { featureFlagDevOverrides };
+    }),
+  clearFeatureFlagDevOverrides: () => set({ featureFlagDevOverrides: {} }),
+});
 
-export const isFeatureEnabled = (flag: FeatureFlagEnums): boolean =>
-  getFeatureFlag(flag).isEnabled;
+export type FeatureFlagLayers = Pick<
+  FeatureFlagSlice,
+  "featureFlagServerValues" | "featureFlagDevOverrides"
+>;
+
+export type ResolvedFeatureFlag = {
+  flag: FlagName;
+  isEnabled: boolean;
+  source: "devOverride" | "env" | "server" | "default";
+};
+
+/**
+ * Resolve a flag using only its declared source (plus optional develop-only
+ * override). Env flags never consult the server map and vice versa.
+ */
+export const resolveFeatureFlag = (
+  flag: FlagName,
+  layers: FeatureFlagLayers,
+): ResolvedFeatureFlag => {
+  const definition = flagCatalog[flag];
+  const devOverride = isDevelop
+    ? layers.featureFlagDevOverrides[flag]
+    : undefined;
+
+  if (devOverride !== undefined) {
+    return { flag, isEnabled: devOverride, source: "devOverride" };
+  }
+
+  if (definition.source === "env") {
+    const envValue = envFlagValues[flag as EnvFlagName];
+    if (envValue !== undefined) {
+      return { flag, isEnabled: envValue, source: "env" };
+    }
+    return { flag, isEnabled: definition.default, source: "default" };
+  }
+
+  const serverValue = layers.featureFlagServerValues[flag as ServerFlagName];
+  if (serverValue !== undefined) {
+    return { flag, isEnabled: serverValue, source: "server" };
+  }
+
+  return { flag, isEnabled: definition.default, source: "default" };
+};

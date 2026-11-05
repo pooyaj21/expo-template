@@ -16,7 +16,7 @@
 Use square brackets for dynamic segments:
 
 ```
-src/app/
+app/
   users/
     [id].tsx        # Matches /users/123, /users/abc
     [id]/
@@ -28,7 +28,7 @@ src/app/
 Use `[...slug]` for catch-all routes:
 
 ```
-src/app/
+app/
   docs/
     [...slug].tsx   # Matches /docs/a, /docs/a/b, /docs/a/b/c
 ```
@@ -67,7 +67,7 @@ function Component() {
 Use parentheses for groups that don't affect the URL:
 
 ```
-src/app/
+app/
   (auth)/
     login.tsx       # URL: /login
     register.tsx    # URL: /register
@@ -93,7 +93,7 @@ When an app has tabs, the header and title should be set in a Stack that is nest
 Example structure:
 
 ```
-src/app/
+app/
   _layout.tsx — <Tabs />
   (home)/
     _layout.tsx — <Stack />
@@ -110,7 +110,7 @@ src/app/
 Use array routes '(index,settings)' to create multiple stacks. This is useful for tabs that need to share screens across stacks.
 
 ```
-src/app/
+app/
   _layout.tsx — <Tabs />
   (index,settings)/
     _layout.tsx — <Stack />
@@ -121,7 +121,7 @@ src/app/
 This requires a specialized layout with explicit anchor routes:
 
 ```tsx
-// src/app/(index,settings)/_layout.tsx
+// app/(index,settings)/_layout.tsx
 import { useMemo } from "react";
 import Stack from "expo-router/stack";
 
@@ -153,7 +153,7 @@ export default function Layout({ segment }: { segment: string }) {
 ## Complete App Structure Example
 
 ```
-src/app/
+app/
   _layout.tsx — <NativeTabs />
   (index,search)/
     _layout.tsx — <Stack />
@@ -173,7 +173,7 @@ utils/
 Every directory can have a `_layout.tsx` file that wraps all routes in that directory:
 
 ```tsx
-// src/app/_layout.tsx
+// app/_layout.tsx
 import { Stack } from "expo-router/stack";
 
 export default function RootLayout() {
@@ -182,7 +182,7 @@ export default function RootLayout() {
 ```
 
 ```tsx
-// src/app/_layout.tsx
+// app/(tabs)/_layout.tsx
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
@@ -214,7 +214,7 @@ export const unstable_settings = {
 Create a `+not-found.tsx` file to handle unmatched routes:
 
 ```tsx
-// src/app/+not-found.tsx
+// app/+not-found.tsx
 import { Link } from "expo-router";
 import { View, Text } from "react-native";
 
