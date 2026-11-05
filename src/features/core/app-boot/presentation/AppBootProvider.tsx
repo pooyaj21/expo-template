@@ -2,7 +2,10 @@ import { ReactNode, useCallback, useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { useAppStore } from "@/common/business-logic/store/app-state";
 import { reportError } from "@/common/business-logic/observability/errorReporter";
-import { getRegisteredBootSteps } from "@/features/core/app-boot/business-logic/bootRegistry";
+import {
+  getRegisteredBootSteps,
+  logSkippedBootStep,
+} from "@/features/core/app-boot/business-logic/bootRegistry";
 import { AppSplash } from "@/features/core/app-boot/presentation/AppSplash";
 import { useEnvironment } from "@/features/core/environment/business-logic/useEnvironment";
 import { useLocalization } from "@/common/business-logic/hooks/useLocalization";
@@ -67,11 +70,12 @@ export const AppBootProvider = ({ children }: AppBootProviderProps) => {
       try {
         await step.run();
       } catch (error) {
-        reportError(error, { bootStep: step.id, soft: step.soft !== false });
         if (step.soft === false) {
+          reportError(error, { bootStep: step.id });
           setBootError(step.id);
           return;
         }
+        logSkippedBootStep(step.id, error);
       }
     }
     setBootError(null);

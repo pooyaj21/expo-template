@@ -1,3 +1,5 @@
+import { prettyLog } from "@/common/data-access/log/prettyLog";
+
 export type BootStep = {
   id: string;
   run: () => Promise<void>;
@@ -23,3 +25,9 @@ export const registerBootStep = (step: BootStep): (() => void) => {
 
 export const getRegisteredBootSteps = (): BootStep[] =>
   Array.from(steps.values());
+
+export const logSkippedBootStep = (id: string, error: unknown): void => {
+  prettyLog(`⚠️ Boot step "${id}" skipped`, {
+    message: error instanceof Error ? error.message : String(error),
+  });
+};

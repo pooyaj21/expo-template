@@ -6,7 +6,7 @@ import { registerDeviceHeaderProvider } from "@/features/core/device/business-lo
 import { registerBootStep } from "@/features/core/app-boot/business-logic/bootRegistry";
 import { fetchFeatureFlags } from "@/features/core/feature-flags/data-access/featureFlagService";
 import { useAppStore } from "@/common/business-logic/store/app-state";
-import { reportError } from "@/common/business-logic/observability/errorReporter";
+import { prettyLog } from "@/common/data-access/log/prettyLog";
 
 registerDeviceHeaderProvider();
 
@@ -18,8 +18,11 @@ registerBootStep({
       const flags = await fetchFeatureFlags();
       useAppStore.getState().updateServerFeatureFlags(flags);
     } catch (error) {
-      // Soft: keep catalog defaults. Surface in logs for develop builds.
-      reportError(error, { bootStep: "feature-flags", soft: true });
+      // Soft: keep catalog defaults. The axios interceptor already logged the
+      // request failure; this only records the fallback.
+      prettyLog("⚠️ Feature flags unavailable — using catalog defaults", {
+        message: error instanceof Error ? error.message : String(error),
+      });
     }
   },
 });

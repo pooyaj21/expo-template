@@ -11,6 +11,8 @@ module.exports = defineConfig([
   {
     ignores: [
       "dist/*",
+      ".expo/*",
+      "expo-env.d.ts",
       "node_modules/*",
       "android/*",
       "ios/*",
